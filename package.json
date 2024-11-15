@@ -11,9 +11,12 @@
   "license": "ISC",
   "dependencies": {
     "backend": "file:",
+    "crypto-js": "^4.2.0",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.11.4",
-    "nodemon": "^3.1.7"
+    "nodemon": "^3.1.7",
+    "pbkdf2": "^3.1.2"
   }
 }
