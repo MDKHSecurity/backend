@@ -1,5 +1,5 @@
 import { Router } from "express";
-import db from "../../database/database.js"; // Import the database module
+import db from "../../database/database.js";
 const router = Router();
 
 router.get("/api/video", async (req, res) => {
