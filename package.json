@@ -10,7 +10,10 @@
   "author": "Kevin Hansen & Michael Dyvad",
   "license": "ISC",
   "dependencies": {
+    "backend": "file:",
+    "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "mysql2": "^3.11.4",
     "nodemon": "^3.1.7"
   }
 }
