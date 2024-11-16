@@ -4,9 +4,14 @@ import db from "../../database/database.js";
 import jwt from "jsonwebtoken";
 import { findUser } from "../../utils/checks/findUsers.js"
 import { hashPassword, verifyPassword } from "../../utils/passwords/hashPassword.js"
+import { authenticateToken } from "../middleware/verifyJWT.js";
 const router = Router();
 
 const jwtSecret = process.env.JWT_SECRET;
+
+router.get('/dashboard', authenticateToken, (req, res) => {
+    res.send({ customMessage: req.user });
+});
 
 router.post("/api/auth/register", async (req, res) => {
     const requestBody = req.body
@@ -39,8 +44,9 @@ router.post("/api/auth/login", async (req, res) => {
         }
 
         const token = jwt.sign(findUserByUsername.username, process.env.JWT_SECRET);
-        
-        res.send({token})
+        console.log(token)
+        res.cookie('jwt', token, { httpOnly: true, secure: true });
+        res.status(200).send({ message: "Success" });
     }
 });
 
