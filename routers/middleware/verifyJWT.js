@@ -3,7 +3,6 @@ const jwtSecret = process.env.JWT_SECRET
 
 
 export function authenticateToken(req, res, next) {
-
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) {
@@ -20,7 +19,6 @@ export function authenticateToken(req, res, next) {
     //   }
       return res.status(401).json({message: 'Forbidden'});
     }
-
     req.user = user;
     next();
   });

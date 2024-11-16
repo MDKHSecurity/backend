@@ -32,7 +32,6 @@ router.post("/api/auth/register", async (req, res) => {
 
 router.post("/api/auth/login", async (req, res) => {
     const requestBody = req.body
-
     const [findUserByUsername] = await findUser(requestBody.username);
     if(findUserByUsername.length === 0){
         res.status(500).send({message: "failed"});
@@ -42,11 +41,28 @@ router.post("/api/auth/login", async (req, res) => {
         if(!isPasswordValid){
             return res.status(400).send({message: "invalid credentials"})
         }
-
-        const token = jwt.sign(findUserByUsername.username, process.env.JWT_SECRET);
-        console.log(token)
+        const token = jwt.sign(
+            {
+                username: findUserByUsername.username,
+                classroom_id: findUserByUsername.classroom_id,
+                institution_id: findUserByUsername.institution_id,
+                role_id: findUserByUsername.role_id
+            },
+            process.env.JWT_SECRET, {expiresIn: "120m"}
+        );
+        const loggedIn = "yes";
         res.cookie('jwt', token, { httpOnly: true, secure: true });
+        //res.cookie('logged_in', loggedIn, { httpOnly: true, secure: true });
         res.status(200).send({ message: "Success" });
+    }
+});
+
+router.get("/api/auth/logout", async (req, res) => {
+    try {
+        res.clearCookie("jwt");
+        res.status(200).send({ message: "User logged out successfully" });
+    } catch (error) {
+        res.status(500).send({ message: "An error occurred" });
     }
 });
 
