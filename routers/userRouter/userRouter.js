@@ -9,8 +9,9 @@ router.get('/api/user', authenticateToken, async (req, res) => {
     const query = `
         SELECT 
             u.id, 
-            u.username, 
-            c.classroom_name, 
+            u.username,
+            u.institution_id,
+            c.classroom_name,
             i.institution_name, 
             r.role_name
         FROM 
