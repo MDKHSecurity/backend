@@ -1,7 +1,32 @@
 import { Router } from "express";
 import db from "../../database/database.js";
+import { authenticateToken } from "../middleware/verifyJWT.js";
 
 const router = Router();
+
+router.get('/api/user', authenticateToken, async (req, res) => {
+    const user = req.user;
+    const query = `
+        SELECT 
+            u.id, 
+            u.username, 
+            c.classroom_name, 
+            i.institution_name, 
+            r.role_name
+        FROM 
+            users u
+        JOIN 
+            classrooms c ON u.classroom_id = c.id
+        JOIN 
+            institutions i ON u.institution_id = i.id
+        JOIN 
+            roles r ON u.role_id = r.id
+        WHERE 
+            u.username = ?;
+    `;
+    const [result] = await db.connection.query(query, [user.username]);
+    res.send(result[0]);
+});
 
 router.get("/api/users", async (req, res) => {
     try {
