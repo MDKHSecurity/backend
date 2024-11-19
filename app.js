@@ -19,6 +19,12 @@ app.use(
 import videoRouter from "./routers/videoRouter/videoRouter.js";
 app.use(videoRouter);
 
+import quizzesRouter from "./routers/quizzesRouter/quizzesRouter.js"
+app.use(quizzesRouter)
+
+import courseRouter from "./routers/courseRouter/courseRouter.js"
+app.use(courseRouter)
+
 import authRouter from "./routers/authRouter/authRouter.js";
 app.use(authRouter);
 
