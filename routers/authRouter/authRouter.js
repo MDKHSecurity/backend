@@ -21,8 +21,8 @@ router.post("/api/auth/register", async (req, res) => {
     if(findUserByUsername.length === 0){
         const {salt, hash} = hashPassword(requestBody.password);
     
-        const insertQuery = "INSERT INTO users (username, salt, password, classroom_id, institution_id, role_id) VALUES (?, ?, ?, ?, ?, ?)";
-        const [registeredUser] = await db.connection.query(insertQuery, [requestBody.username, salt, hash, requestBody.classroom, requestBody.institution, requestBody.role]);
+        const insertQuery = "INSERT INTO users (username, salt, password, institution_id, role_id) VALUES (?, ?, ?, ?, ?)";
+        const [registeredUser] = await db.connection.query(insertQuery, [requestBody.username, salt, hash, requestBody.institution, requestBody.role]);
 
         res.status(200).json({ success: true, data: registeredUser }); 
     }else{
@@ -44,7 +44,6 @@ router.post("/api/auth/login", async (req, res) => {
         const token = jwt.sign(
             {
                 username: findUserByUsername.username,
-                classroom_id: findUserByUsername.classroom_id,
                 institution_id: findUserByUsername.institution_id,
                 role_id: findUserByUsername.role_id
             },
