@@ -31,6 +31,9 @@ app.use(authRouter);
 import userRouter from "./routers/userRouter/userRouter.js";
 app.use(userRouter);
 
+import roomRouter from "./routers/roomRouter/roomRouter.js"
+app.use(roomRouter);
+
 const PORT = 8080 || process.env.PORT;
 app.listen(PORT, () => {{
     console.log("Server is running on port", PORT);
