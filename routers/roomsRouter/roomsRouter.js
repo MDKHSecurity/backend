@@ -10,8 +10,8 @@ router.get("/api/rooms/:institutionid", authenticateToken, async (req, res) => {
     const [rooms] = await db.connection.query(
         "SELECT * FROM rooms WHERE institution_id = ?",
         [institutionId]);
-        
-        res.status(200).send({room: rooms})
+        console.log(rooms)
+        res.status(200).send(rooms)
 });
 
 router.post("/api/room", authenticateToken, async (req, res) => {
