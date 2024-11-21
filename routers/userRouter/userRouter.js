@@ -46,4 +46,14 @@ router.get('/api/user', authenticateToken, async (req, res) => {
     }
 });
 
+router.get("/api/users/:institutionid", authenticateToken, async (req, res) => {
+    const institutionId = req.params.institutionid;
+    
+    const [users] = await db.connection.query(
+        "SELECT * FROM users WHERE institution_id = ?",
+        [institutionId]);
+        console.log(users)
+        res.status(200).send(users)
+  });
+
 export default router;

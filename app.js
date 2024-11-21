@@ -31,8 +31,8 @@ app.use(authRouter);
 import userRouter from "./routers/userRouter/userRouter.js";
 app.use(userRouter);
 
-import roomRouter from "./routers/roomRouter/roomRouter.js"
-app.use(roomRouter);
+import roomsRouter from "./routers/roomsRouter/roomsRouter.js"
+app.use(roomsRouter);
 
 const PORT = 8080 || process.env.PORT;
 app.listen(PORT, () => {{
