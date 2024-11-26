@@ -120,4 +120,17 @@ router.delete('/api/rooms/courses', authenticateToken, async (req, res) => {
   }
 });
 
+router.delete('/api/rooms/:roomid', authenticateToken, async (req, res) => {
+  const roomId = req.params.roomid;
+    try {
+        const [result] = await db.connection.query(
+            "DELETE FROM rooms WHERE id = ?",
+            [roomId]
+        );
+        res.status(200).send({data: result});
+    } catch (error) {
+        res.status(500).send({ message: "error" });
+    }
+})
+
 export default router;
