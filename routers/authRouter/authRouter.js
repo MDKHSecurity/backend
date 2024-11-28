@@ -3,7 +3,7 @@ import pbkdf2 from "pbkdf2";
 import db from "../../database/database.js";
 import jwt from "jsonwebtoken";
 import { findUser } from "../../utils/checks/findUsers.js"
-import { hashPassword, verifyPassword } from "../../utils/passwords/hashPassword.js"
+import { hashElement, verifyPassword } from "../../utils/passwords/hashPassword.js"
 import { authenticateToken } from "../middleware/verifyJWT.js";
 const router = Router();
 
@@ -16,11 +16,8 @@ router.get('/dashboard', authenticateToken, (req, res) => {
 router.post("/api/auth/register", async (req, res) => {
     const requestBody = req.body
     const findUserByUsername = await findUser(requestBody.username);
-    
-    
     if(findUserByUsername.length === 0){
         const {salt, hash} = hashPassword("password");
-        
         const insertQuery = "INSERT INTO users (username, salt, password, institution_id, role_id) VALUES (?, ?, ?, ?, ?)";
         const [registeredUser] = await db.connection.query(insertQuery, [requestBody.username, salt, hash, requestBody.institution, requestBody.role]);
 
@@ -32,22 +29,23 @@ router.post("/api/auth/register", async (req, res) => {
 
 router.post("/api/auth/login", async (req, res) => {
     const requestBody = req.body
-    const [findUserByUsername] = await findUser(requestBody.username); 
-    if(findUserByUsername.length === 0){
+    const [findUserByEmail] = await findUser(requestBody.email); 
+    console.log(findUserByEmail)
+    if(findUserByEmail.length === 0){
         res.status(500).send({message: "failed"});
     }else{
-        const isPasswordValid = verifyPassword(requestBody.password, findUserByUsername.salt, findUserByUsername.password)
-        
+        const isPasswordValid = verifyPassword(requestBody.password, findUserByEmail.password)
+        console.log(isPasswordValid)
         if(!isPasswordValid){
             return res.status(400).send({message: "invalid credentials"})
         }
         const token = jwt.sign(
             {
-                username: findUserByUsername.username,
-                institution_id: findUserByUsername.institution_id,
-                role_id: findUserByUsername.role_id
+                username: findUserByEmail.username,
+                institution_id: findUserByEmail.institution_id,
+                role_id: findUserByEmail.role_id
             },
-            process.env.JWT_SECRET, {expiresIn: "120m"}
+            process.env.JWT_SECRET, {expiresIn: "30m"}
         );
         const loggedIn = "yes";
         res.cookie('jwt', token, { httpOnly: true, secure: true });

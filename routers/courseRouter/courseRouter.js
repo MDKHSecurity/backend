@@ -43,8 +43,6 @@ router.get("/api/courses", async (req, res) => {
                 };
             })
         );
-        
-
         res.status(200).json(coursesWithDetails);
     } catch (error) {
         console.error("Error fetching courses:", error);
