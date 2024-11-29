@@ -15,13 +15,13 @@ router.get('/dashboard', authenticateToken, (req, res) => {
 
 router.post("/api/auth/register", async (req, res) => {
     const requestBody = req.body
-    const findUserByUsername = await findUser(requestBody.username);
+    console.log(requestBody)
+    const findUserByUsername = await findUser(requestBody.email);
     if(findUserByUsername.length === 0){
-        const {salt, hash} = hashPassword("password");
-        const insertQuery = "INSERT INTO users (username, salt, password, institution_id, role_id) VALUES (?, ?, ?, ?, ?)";
-        const [registeredUser] = await db.connection.query(insertQuery, [requestBody.username, salt, hash, requestBody.institution, requestBody.role]);
-
-        res.status(200).json({ success: true, data: registeredUser }); 
+        const {hash} = hashElement(requestBody.password);
+        const insertQuery = "INSERT INTO users (username, password, institution_id, role_id, email) VALUES (?, ?, ?, ?, ?)";
+        const [registeredUser] = await db.connection.query(insertQuery, [requestBody.username, hash, requestBody.institution, requestBody.role_id, requestBody.email]);
+        res.status(200).json({success: true, data: registeredUser}); 
     }else{
         res.status(500).send({message: "failed"});
     }
