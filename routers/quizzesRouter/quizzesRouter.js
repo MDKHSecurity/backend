@@ -36,6 +36,41 @@ router.get("/api/quizzes", async (req, res) => {
     }
 });
 
+router.get("/api/quizzes/:id", async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const [quizResult] = await db.connection.query(
+            "SELECT * FROM quizzes WHERE id = ?",
+            [id]
+        );
+
+        if (quizResult.length === 0) {
+            return res.status(404).json({ success: false, message: "Quiz not found" });
+        }
+
+        const quiz = quizResult[0];
+
+        // Fetch questions associated with the quiz
+        const [questions] = await db.connection.query(
+            `
+            SELECT q.* 
+            FROM quizzes_questions qq
+            INNER JOIN questions q ON qq.question_id = q.id
+            WHERE qq.quiz_id = ?
+            `,
+            [quiz.id]
+        );
+
+        quiz.questions = questions;
+
+        res.status(200).json(quiz);
+    } catch (error) {
+        console.error("Error fetching quiz:", error);
+        res.status(500).json({ success: false, message: "Error fetching quiz" });
+    }
+});
+
 //mangler at poste til quizzes_questions
 router.post("/api/quizzes", async (req, res) => {
     const requestBody = req.body;
