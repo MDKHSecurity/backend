@@ -50,6 +50,67 @@ router.get("/api/courses", async (req, res) => {
     }
 });
 
+router.get("/api/courses/:courseId", async (req, res) => {
+    const { courseId } = req.params;
+  
+    try {
+      const [course] = await db.connection.query(
+        "SELECT * FROM courses WHERE id = ?", [courseId]
+      );
+  
+      const selectedCourse = course[0];
+  
+      const [videos] = await db.connection.query(
+        `
+          SELECT v.* 
+          FROM courses_videos cv
+          INNER JOIN videos v ON cv.video_id = v.id
+          WHERE cv.course_id = ?
+          `,
+        [courseId]
+      );
+  
+      const [quizzes] = await db.connection.query(
+        `
+          SELECT q.* 
+          FROM courses_quizzes cq
+          INNER JOIN quizzes q ON cq.quiz_id = q.id
+          WHERE cq.course_id = ?
+          `,
+        [courseId]
+      );
+  
+      const quizzesWithQuestions = await Promise.all(
+        quizzes.map(async (quiz) => {
+          const [questions] = await db.connection.query(
+            `
+              SELECT qs.* 
+              FROM quizzes_questions qq
+              INNER JOIN questions qs ON qq.question_id = qs.id
+              WHERE qq.quiz_id = ?
+              `,
+            [quiz.id]
+          );
+  
+          return {
+            ...quiz,
+            questions,
+          };
+        })
+      );
+  
+      const courseWithDetails = {
+        ...selectedCourse,
+        videos,
+        quizzes: quizzesWithQuestions,
+      };
+  
+      res.status(200).json(courseWithDetails);
+    } catch (error) {
+      console.error("Error fetching course details:", error);
+      res.status(500).json({ success: false, message: "Error fetching course details" });
+    }
+  });
 
 
 router.post("/api/courses", authenticateToken, async (req, res) => {
