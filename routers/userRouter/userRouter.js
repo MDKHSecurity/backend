@@ -8,6 +8,7 @@ import { hashElement, verifyPassword } from "../../utils/passwords/hashPassword.
 
 router.get("/api/users", authenticateToken, async (req, res) => {
   const user = req.user;
+  
   try {
     res.status(200).send(user);
   } catch (err) {
@@ -16,61 +17,16 @@ router.get("/api/users", authenticateToken, async (req, res) => {
   }
 });
 
-router.get("/api/user", authenticateToken, async (req, res) => {
-    const user = req.user;
-    const query = `
-      SELECT 
-          u.id, 
-          u.username,
-          u.institution_id,
-          i.institution_name,
-          r.role_name,
-          JSON_ARRAYAGG(
-              JSON_OBJECT(
-                  'id', ro.id, 
-                  'name', ro.room_name, 
-                  'courses', (
-                      SELECT JSON_ARRAYAGG(
-                          JSON_OBJECT('id', c.id, 'name', c.course_name)
-                      )
-                      FROM rooms_courses rc
-                      JOIN courses c ON rc.course_id = c.id
-                      WHERE rc.room_id = ro.id
-                  )
-              )
-          ) AS rooms
-      FROM 
-          users u
-      LEFT JOIN 
-          users_rooms ur ON u.id = ur.user_id
-      LEFT JOIN 
-          rooms ro ON ur.room_id = ro.id
-      JOIN 
-          institutions i ON u.institution_id = i.id
-      JOIN 
-          roles r ON u.role_id = r.id
-      WHERE 
-          u.username = ?
-      GROUP BY 
-          u.id;
-    `;
-  
-    try {
-      const [result] = await db.connection.query(query, [user.username]);
-      if (!result[0]) {
-        return res.status(404).send({ error: "User not found" });
-      }
-  
-      const userInfo = {
-        ...result[0],
-        rooms: result[0].rooms,
-      };
-      res.status(200).send(userInfo);
-    } catch (err) {
-      console.error(err);
-      res.status(500).send({ error: "Database query failed" });
-    }
-  });
+router.get("/api/users/test", authenticateToken, async (req, res) => {
+  const user = req.user;
+
+  try {
+    res.status(200).send(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ error: "error" });
+  }
+});
 
 //Gets all users on instution and their assigned rooms
 router.get("/api/users/:institutionid", authenticateToken, async (req, res) => {
