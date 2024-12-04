@@ -46,6 +46,9 @@ app.use(userRouter);
 import roomsRouter from "./routers/roomsRouter/roomsRouter.js"
 app.use(roomsRouter);
 
+import statisticsRouter from "./routers/statisticsRouter/statisticsRouter.js"
+app.use(statisticsRouter);
+
 const PORT = 8080 || process.env.PORT;
 app.listen(PORT, () => {{
     console.log("Server is running on port", PORT);

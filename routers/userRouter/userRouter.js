@@ -1,6 +1,6 @@
 import { Router } from "express";
 import db from "../../database/database.js";
-import { authenticateToken } from "../middleware/verifyJWT.js";
+import { authenticateToken} from "../middleware/verifyJWT.js";
 import { findUser } from "../../utils/checks/findUsers.js"
 const router = Router();
 import { sendMail } from "../../utils/mails/mailing.js"; // Import the sendMail function
@@ -8,9 +8,67 @@ import { hashElement, verifyPassword } from "../../utils/passwords/hashPassword.
 
 router.get("/api/users", authenticateToken, async (req, res) => {
   const user = req.user;
-  
   try {
     res.status(200).send(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ error: "error" });
+  }
+});
+
+router.get("/api/users/rooms", authenticateToken, async (req, res) => {
+  const user = req.user;
+  try {
+    const query = `
+        SELECT 
+            u.id, 
+            u.username,
+            u.institution_id,
+            u.email,
+            u.password,
+            i.institution_name,
+            r.role_name,
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'id', ro.id, 
+                    'name', ro.room_name, 
+                    'courses', (
+                        SELECT JSON_ARRAYAGG(
+                            JSON_OBJECT('id', c.id, 'name', c.course_name)
+                        )
+                        FROM rooms_courses rc
+                        JOIN courses c ON rc.course_id = c.id
+                        WHERE rc.room_id = ro.id
+                    )
+                )
+            ) AS rooms
+        FROM 
+            users u
+        LEFT JOIN 
+            users_rooms ur ON u.id = ur.user_id
+        LEFT JOIN 
+            rooms ro ON ur.room_id = ro.id
+        JOIN 
+            institutions i ON u.institution_id = i.id
+        JOIN 
+            roles r ON u.role_id = r.id
+        WHERE 
+            u.email = ?
+        GROUP BY 
+            u.id;
+    `;
+
+    
+        const [result] = await db.connection.query(query, [user.email]);
+        
+        if (!result || result.length === 0) {
+            return []; // Return null or a default value
+        }
+        const userInfo = {
+            ...result[0],
+            rooms: result[0].rooms // Parse JSON or provide default
+        };
+    res.status(200).send(userInfo);
   } catch (err) {
     console.error(err);
     res.status(500).send({ error: "error" });
