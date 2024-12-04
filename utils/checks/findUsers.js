@@ -1,8 +1,6 @@
 import db from "../../database/database.js";
 
 export async function findUser(email) {
-
-
     const query = `
         SELECT 
             u.id, 

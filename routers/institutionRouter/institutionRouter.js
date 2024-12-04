@@ -1,8 +1,9 @@
 import { Router } from "express";
 import db from "../../database/database.js";
+import { authenticateToken } from "../middleware/verifyJWT.js";
 const router = Router();
 
-router.get("/api/institutions", async (req, res) => {
+router.get("/api/institutions", authenticateToken, async (req, res) => {
     try {
         const [institutions] = await db.connection.query("SELECT * FROM institutions"); 
         res.status(200).json(institutions);
@@ -12,7 +13,7 @@ router.get("/api/institutions", async (req, res) => {
     }
 });
 
-router.post("/api/institutions", async (req, res) => {
+router.post("/api/institutions", authenticateToken, async (req, res) => {
     const requestBody = req.body
     try {
         const insertQuery = "INSERT INTO institutions (institution_name, city, address, licens_amount) VALUES (?, ?, ?, ?)";
@@ -28,7 +29,7 @@ router.post("/api/institutions", async (req, res) => {
     }
 });
 
-router.delete("/api/institutions/:id", async (req, res) => {
+router.delete("/api/institutions/:id", authenticateToken, async (req, res) => {
     const institutionId = req.params.id;
 
     try {  

@@ -1,8 +1,9 @@
 import { Router } from "express";
 import db from "../../database/database.js";
+import { authenticateToken } from "../middleware/verifyJWT.js";
 const router = Router();
 
-router.get("/api/quizzes", async (req, res) => {
+router.get("/api/quizzes", authenticateToken, async (req, res) => {
     try {
         // Query to fetch all quizzes
         const [quizzes] = await db.connection.query("SELECT * FROM quizzes");
@@ -36,7 +37,7 @@ router.get("/api/quizzes", async (req, res) => {
     }
 });
 
-router.get("/api/quizzes/:id", async (req, res) => {
+router.get("/api/quizzes/:id", authenticateToken, async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -72,7 +73,7 @@ router.get("/api/quizzes/:id", async (req, res) => {
 });
 
 //mangler at poste til quizzes_questions
-router.post("/api/quizzes", async (req, res) => {
+router.post("/api/quizzes", authenticateToken, async (req, res) => {
     const requestBody = req.body;
 
 
@@ -114,7 +115,7 @@ router.post("/api/quizzes", async (req, res) => {
 });
 
 
-router.delete("/api/quizzes/:id", async (req, res) => {
+router.delete("/api/quizzes/:id", authenticateToken, async (req, res) => {
     const quizId = req.params.id;
     try {  
         const [result] = await db.connection.query(
