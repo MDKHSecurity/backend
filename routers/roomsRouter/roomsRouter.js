@@ -59,10 +59,10 @@ router.post("/api/rooms", authenticateToken, async (req, res) => {
     }
 
     const [result] = await db.connection.query("INSERT INTO rooms (room_name, institution_id) VALUES (?, ?)", [body.roomName, body.institutionId]);
-    return res.send({message: `Room created ${body.roomName}`, roomId: result.insertId});
+    return res.send({message: `Successfully created room: ${body.roomName}`, roomId: result.insertId});
 
   } catch (error) {
-    return res.status(500).send({message: "Internal Error"});
+    return res.status(500).send({message: "Something went wrong"});
   }
 });
 
@@ -77,9 +77,9 @@ router.post("/api/rooms/courses", authenticateToken, async (req, res) => {
   const values = roomsCourses.map(({ roomId, courseId }) => [roomId, courseId]);
   const query = `INSERT INTO rooms_courses (room_id, course_id) VALUES ?`;
     await db.connection.query(query, [values]);
-    res.send({assigned: roomsCourses});
+    res.send({message:`Successfully assigned course to room`, assigned: roomsCourses});
   } catch (err) {
-    res.status(500).send({ message: "Internal Error"});
+    res.status(500).send({ message: "Something went wrong"});
   }
 });
 
@@ -98,9 +98,9 @@ router.delete("/api/rooms/courses", authenticateToken, async (req, res) => {
   const values = roomsCourses.map(({ roomId, courseId }) => [roomId, courseId]);
 
     await db.connection.query(query, [values]);
-    res.send({ deleted: roomsCourses });
+    res.send({message: `Successfully removed course from room`, deleted: roomsCourses });
   } catch (err) {
-    res.status(500).send({ message: "Internal Error" });
+    res.status(500).send({ message: "Something went wrong" });
   }
 });
 
@@ -108,7 +108,7 @@ router.delete("/api/rooms/:roomid", authenticateToken, async (req, res) => {
   const roomId = req.params.roomid;
   try {
     const [result] = await db.connection.query("DELETE FROM rooms WHERE id = ?", [roomId]);
-    res.send({data: result});
+    res.send({message: `Successfully deleted room`, data: result});
   } catch (error) {
     res.status(500).send({ message: "Internal Error" });
   }

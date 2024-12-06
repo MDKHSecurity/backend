@@ -10,7 +10,7 @@ router.get("/api/institutions", authenticateToken, async (req, res) => {
         
     } catch (error) {
         console.error("Error fetching quizzes:", error);
-        res.status(500).send({message: "Internal Error" });
+        res.status(500).send({message: "Something went wrong" });
     }
 });
 
@@ -23,11 +23,11 @@ router.post("/api/institutions", authenticateToken, async (req, res) => {
             id: institution.insertId,
             ...requestBody       
         };
-        res.send(newInstitution);
+        res.send({message: `Successfully created institution: ${requestBody.institution_name}`, newInstitution});
 
     } catch (error) {
-        console.error("Error fetching quizzes:", error);
-        res.status(500).send({message: "Internal Error" });
+        console.error("Error fetching institutions:", error);
+        res.status(500).send({message: "Something went wrong" });
     }
 });
 
@@ -39,11 +39,11 @@ router.delete("/api/institutions/:id", authenticateToken, async (req, res) => {
             "DELETE FROM institutions WHERE id = ?",
             [institutionId]
         );
-        res.send({result});
+        res.send({message: `Successfully deleted institution`, result});
 
     } catch (error) {
-        console.error("Error fetching quizzes:", error);
-        res.status(500).send({message: "Internal Error" });
+        console.error("Error fetching institutions:", error);
+        res.status(500).send({message: "Something went wrong" });
     }
 });
 

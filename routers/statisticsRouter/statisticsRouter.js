@@ -21,7 +21,7 @@ router.post("/api/statistics", authenticateToken, async (req, res) => {
     await db.connection.query(query, [values]);
     res.send({message: "Success"});
   } catch (err) {
-    res.status(500).send({ message: "Internal Error" });
+    res.status(500).send({ message: "Something went wrong" });
   }
 });
 
@@ -69,7 +69,7 @@ router.get("/api/statistics/:institutionId", authenticateToken, async (req, res)
 
       res.send(institutionStats);
     } catch (err) {
-      res.status(500).send({message: "Internal Error"});
+      res.status(500).send({message: "Something went wrong"});
     }
   }
 );

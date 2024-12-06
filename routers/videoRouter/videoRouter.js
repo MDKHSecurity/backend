@@ -9,7 +9,7 @@ import { authenticateToken } from "../middleware/verifyJWT.js";
             res.send(videos);
         } catch (error) {
             console.error("Error fetching videos:", error);
-            res.status(500).send({ success: false, message: "Internal Error" });
+            res.status(500).send({ success: false, message: "Something went wrong" });
         }
     });
 
@@ -23,10 +23,10 @@ import { authenticateToken } from "../middleware/verifyJWT.js";
                 id: video.insertId,
                 ...requestBody       
             };
-            res.send(newVideo);
+            res.send( {message:`Successfully created video: ${requestBody.video_name}`, newVideo});
         } catch (error) {
             console.error("Error fetching videos:", error);
-            res.status(500).send({ success: false, message: "Internal Error" });
+            res.status(500).send({ success: false, message: "Something went wrong" });
         }
     });
 
@@ -37,11 +37,11 @@ import { authenticateToken } from "../middleware/verifyJWT.js";
                 "DELETE FROM videos WHERE id = ?",
                 [videoId]
             );
-            res.json({data: result});
+            res.json({message: `Successfully deleted video`, data: result});
 
         } catch (error) {
             console.error("Error fetching videos:", error);
-            res.status(500).send({ success: false, message: "Internal Error" });
+            res.status(500).send({ success: false, message: "Something went wrong" });
         }
     });
 

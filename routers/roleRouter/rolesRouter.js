@@ -9,7 +9,7 @@ router.get("/api/roles", authenticateToken, async (req, res) => {
         res.send(roles);
     } catch (error) {
         console.error("Error fetching roles:", error);
-        res.status(500).send({message: "Internal Error"});
+        res.status(500).send({message: "Something went wrong"});
     }
 });
 
