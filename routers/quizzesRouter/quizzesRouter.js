@@ -28,18 +28,16 @@ router.get("/api/quizzes", authenticateToken, async (req, res) => {
                     questions,
                 };
             })
-        );
-        
-        res.status(200).json(quizzesWithDetails);
+        );           
+        res.send(quizzesWithDetails);
     } catch (error) {
         console.error("Error fetching quizzes:", error);
-        res.status(500).json({ success: false, message: "Error fetching quizzes" });
+        res.status(500).send({message: "Internal Error" });
     }
 });
 
 router.get("/api/quizzes/:id", authenticateToken, async (req, res) => {
     const { id } = req.params;
-
     try {
         const [quizResult] = await db.connection.query(
             "SELECT * FROM quizzes WHERE id = ?",
@@ -65,24 +63,20 @@ router.get("/api/quizzes/:id", authenticateToken, async (req, res) => {
 
         quiz.questions = questions;
 
-        res.status(200).json(quiz);
+        res.send(quiz);
     } catch (error) {
         console.error("Error fetching quiz:", error);
-        res.status(500).json({ success: false, message: "Error fetching quiz" });
+        res.status(500).send({message: "Internal Error" });
     }
 });
 
 //mangler at poste til quizzes_questions
 router.post("/api/quizzes", authenticateToken, async (req, res) => {
     const requestBody = req.body;
-
-
     const { quiz_name, number_of_questions, questions } = requestBody;
-
     if (!quiz_name || !Array.isArray(questions) || questions.length === 0) {
-        return res.status(400).json({ success: false, message: "Invalid input data" });
+        return res.status(400).send({message: "Bad Request" });
     }
-
     try {
         // Start transaction
         await db.connection.beginTransaction();
@@ -103,14 +97,13 @@ router.post("/api/quizzes", authenticateToken, async (req, res) => {
             id: quiz.insertId,
             ...requestBody       
         };
-        
-        res.status(200).json(newQuiz);
+        res.send(newQuiz);
+
     } catch (error) {
         console.error("Error creating quiz:", error);
-
         // Rollback transaction on error
         await db.connection.rollback();
-        res.status(500).json({ success: false, message: "Error creating quiz" });
+        res.status(500).send({message: "Internal Error" });
     }
 });
 
@@ -122,10 +115,10 @@ router.delete("/api/quizzes/:id", authenticateToken, async (req, res) => {
             "DELETE FROM quizzes WHERE id = ?",
             [quizId]
         );
-        res.status(200).json({message: "deleted"});
+        res.send({data: result});
     } catch (error) {
         console.error("Error fetching quizzes:", error);
-        res.status(500).json({ success: false, message: "Error fetching quizzes" });
+        res.status(500).send({message: "Internal Error" });
     }
 });
 

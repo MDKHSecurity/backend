@@ -6,6 +6,7 @@ const router = Router();
 
 router.post("/api/statistics", authenticateToken, async (req, res) => {
   const body = req.body;
+  try {
   const values = [
     [
       body.userId,
@@ -15,20 +16,16 @@ router.post("/api/statistics", authenticateToken, async (req, res) => {
       body.correctAnswers,
     ],
   ];
-  const query = `
-      INSERT INTO courses_statistics (user_id, room_id, course_id, total_questions, correct_answers)
-      VALUES ?
-    `;
+  const query = `INSERT INTO courses_statistics (user_id, room_id, course_id, total_questions, correct_answers) VALUES ?`;
 
-  try {
     await db.connection.query(query, [values]);
-    res.status(200).send({ message: "Data inserted successfully" });
+    res.send({message: "Success"});
   } catch (err) {
-    res.status(500).send({ message: "Error inserting data" });
+    res.status(500).send({ message: "Internal Error" });
   }
 });
 
-router.get("/api/statistics/:institutionId",authenticateToken,async (req, res) => {
+router.get("/api/statistics/:institutionId", authenticateToken, async (req, res) => {
     const { institutionId } = req.params;
 
     try {
@@ -70,9 +67,9 @@ router.get("/api/statistics/:institutionId",authenticateToken,async (req, res) =
         rooms: roomsWithStatistics,
       };
 
-      res.status(200).json(institutionStats);
+      res.send(institutionStats);
     } catch (err) {
-      res.status(500).send({ error: "Database query failed" });
+      res.status(500).send({message: "Internal Error"});
     }
   }
 );

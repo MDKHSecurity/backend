@@ -3,7 +3,6 @@ import { pbkdf2 } from "pbkdf2";
 
 export function hashElement(element){
     
-    const salt = crypto.randomBytes(16).toString('hex');
     const hash = crypto.pbkdf2Sync(
       element,
       process.env.PBKDF2_SALT,
@@ -11,7 +10,7 @@ export function hashElement(element){
       parseInt(process.env.PBKDF2_KEYLEN),
       process.env.PBKDF2_DIGEST
     ).toString('hex');
-    return { hash };
+    return hash;
   };
 
   export function verifyPassword(password, hash){

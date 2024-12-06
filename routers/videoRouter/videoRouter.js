@@ -1,18 +1,19 @@
     import { Router } from "express";
     import db from "../../database/database.js";
+import { authenticateToken } from "../middleware/verifyJWT.js";
     const router = Router();
 
-    router.get("/api/videos", async (req, res) => {
+    router.get("/api/videos", authenticateToken, async (req, res) => {
         try {
             const [videos] = await db.connection.query("SELECT * FROM videos");
-            res.status(200).json(videos);
+            res.send(videos);
         } catch (error) {
             console.error("Error fetching videos:", error);
-            res.status(500).json({ success: false, message: "Error fetching videos" });
+            res.status(500).send({ success: false, message: "Internal Error" });
         }
     });
 
-    router.post("/api/videos", async (req, res) => {
+    router.post("/api/videos", authenticateToken, async (req, res) => {
         const requestBody = req.body
         try {
             const insertQuery = "INSERT INTO videos (video_name, file_name, length) VALUES (?, ?, ?)";
@@ -22,24 +23,25 @@
                 id: video.insertId,
                 ...requestBody       
             };
-            res.status(200).json(newVideo);
+            res.send(newVideo);
         } catch (error) {
             console.error("Error fetching videos:", error);
-            res.status(500).json({ success: false, message: "Error fetching videos" });
+            res.status(500).send({ success: false, message: "Internal Error" });
         }
     });
 
-    router.delete("/api/videos/:id", async (req, res) => {
+    router.delete("/api/videos/:id", authenticateToken, async (req, res) => {
         const videoId = req.params.id;
         try {  
-            const [video] = await db.connection.query(
+            const [result] = await db.connection.query(
                 "DELETE FROM videos WHERE id = ?",
                 [videoId]
             );
-            res.status(200).json({message: "deleted"});
+            res.json({data: result});
+
         } catch (error) {
             console.error("Error fetching videos:", error);
-            res.status(500).json({ success: false, message: "Error fetching videos" });
+            res.status(500).send({ success: false, message: "Internal Error" });
         }
     });
 
