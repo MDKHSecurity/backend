@@ -45,7 +45,7 @@ router.get("/api/quizzes/:id", authenticateToken, async (req, res) => {
         );
 
         if (quizResult.length === 0) {
-            return res.status(404).json({ success: false, message: "Quiz not found" });
+            return res.status(400).json({ success: false, message: "Quiz not found" });
         }
 
         const quiz = quizResult[0];

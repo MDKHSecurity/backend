@@ -17,9 +17,7 @@ router.get("/api/users", authenticateToken, async (req, res) => {
 });
 
 router.get("/api/users/rooms", authenticateToken, async (req, res) => {
-  console.log("In rooms api")
   const user = req.user;
-  console.log(user, "This is loggedin user")
   try {
     const query = `
         SELECT 
@@ -62,7 +60,6 @@ router.get("/api/users/rooms", authenticateToken, async (req, res) => {
 
     
         const [result] = await db.connection.query(query, [user.email]);
-        console.log("This is result from DB --->", result)
         
         if (!result || result.length === 0) {
             return []; // Return null or a default value
@@ -72,7 +69,6 @@ router.get("/api/users/rooms", authenticateToken, async (req, res) => {
             rooms: result[0].rooms // Parse JSON or provide default
         };
 
-        console.log("This is the data we send", userInfo)
     res.send(userInfo);
   } catch (err) {
     console.error(err);

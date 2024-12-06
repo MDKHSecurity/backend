@@ -50,7 +50,7 @@ router.delete('/api/tokens/:id', async (req, res) => {
         const [result] = await db.connection.query(deleteQuery, [tokenId]);
         // Check if any rows were affected
         if (result.affectedRows === 0) {
-            return res.status(404).send({ message: "Not found" });
+            return res.status(400).send({ message: "Not found" });
         }
 
         res.status(200).send({ message: "Token deleted successfully" });
