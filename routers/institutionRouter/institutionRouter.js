@@ -6,10 +6,11 @@ const router = Router();
 router.get("/api/institutions", authenticateToken, async (req, res) => {
     try {
         const [institutions] = await db.connection.query("SELECT * FROM institutions"); 
-        res.status(200).json(institutions);
+        res.send(institutions);
+        
     } catch (error) {
         console.error("Error fetching quizzes:", error);
-        res.status(500).json({ success: false, message: "Error fetching institutions" });
+        res.status(500).send({message: "Internal Error" });
     }
 });
 
@@ -22,10 +23,11 @@ router.post("/api/institutions", authenticateToken, async (req, res) => {
             id: institution.insertId,
             ...requestBody       
         };
-        res.status(200).json(newInstitution);
+        res.send(newInstitution);
+
     } catch (error) {
         console.error("Error fetching quizzes:", error);
-        res.status(500).json({ success: false, message: "Error fetching institutions" });
+        res.status(500).send({message: "Internal Error" });
     }
 });
 
@@ -37,15 +39,12 @@ router.delete("/api/institutions/:id", authenticateToken, async (req, res) => {
             "DELETE FROM institutions WHERE id = ?",
             [institutionId]
         );
-        
-        res.status(200).json({result});
+        res.send({result});
+
     } catch (error) {
         console.error("Error fetching quizzes:", error);
-        res.status(500).json({ success: false, message: "Error fetching institutions" });
+        res.status(500).send({message: "Internal Error" });
     }
 });
-
-
-
 
 export default router;

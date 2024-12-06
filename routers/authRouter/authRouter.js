@@ -1,109 +1,120 @@
 import { Router } from "express";
-import pbkdf2 from "pbkdf2";
 import db from "../../database/database.js";
 import jwt from "jsonwebtoken";
 import { findUser } from "../../utils/checks/findUsers.js";
-import { hashElement, verifyPassword} from "../../utils/passwords/hashPassword.js";
+import { hashElement } from "../../utils/passwords/hashPassword.js";
 const router = Router();
 
 const jwtSecret = process.env.JWT_SECRET;
 
 router.post("/api/auth/refresh", async (req, res) => {
+
   const refreshToken = req.body.refreshToken;
   const authHeader = req.headers['authorization'];
   const jwtToken = authHeader && authHeader.split(' ')[1];
-  let newAccessToken = null;
-  // Verify the JWT
-  jwt.verify(jwtToken, jwtSecret, async (err, user) => {
-    if (err) {
-      if (err.name === "TokenExpiredError") {
-        console.log("Access token expired. Checking for refresh token...");
-        if (!refreshToken) {
-          return res
-            .status(401)
-            .json({ message: "Session expired. Please log in again." });
-        }
 
-        try {
-          const decodedRefresh = jwt.verify(refreshToken, jwtSecret);
-          const query = `SELECT user_id FROM tokens WHERE user_id = ? AND token_type_id = 2`;
-          const [tokens] = await db.connection.query(query, [decodedRefresh.id]);
-
-          if (tokens.length === 0) {
-            return res.status(403).json({ message: "Invalid refresh token. Please log in again." });
+  try {
+    // Verify the JWT
+    jwt.verify(jwtToken, jwtSecret, async (err, user) => {
+      if (err) {
+        if (err.name === "TokenExpiredError") {
+          if (!refreshToken) {
+            // res.clearCookie("jwt", { httpOnly: true, secure: true, path: "/" })
+            // res.clearCookie("refreshToken", { httpOnly: true, secure: true, path: "/" })
+            return res.status(401).json({ message: "Please log in" });
           }
 
-          // Create new tokens
-          const newAccessToken = jwt.sign(
-            {
-              id: decodedRefresh.id,
-              username: decodedRefresh.username,
-              email: decodedRefresh.email,
-              institution_id: decodedRefresh.institution_id,
-              role_name: decodedRefresh.role_name,
-              isLoggedIn: decodedRefresh.isLoggedIn,
-            },
-            jwtSecret,
-            { expiresIn: "1m" }
-          );
+          try {
+            const decodedRefresh = jwt.verify(refreshToken, jwtSecret);
+            const query = `SELECT user_id FROM tokens WHERE user_id = ? AND token_type_id = 2`;
+            const [tokens] = await db.connection.query(query, [decodedRefresh.id]);
+            console.log(tokens, "auth backend token from db")
+            if (tokens.length === 0) {
 
-          const newRefreshToken = jwt.sign(
-            {
-              id: decodedRefresh.id,
-              username: decodedRefresh.username,
-              email: decodedRefresh.email,
-              institution_id: decodedRefresh.institution_id,
-              role_name: decodedRefresh.role_name,
-              isLoggedIn: decodedRefresh.isLoggedIn,
-            },
-            jwtSecret,
-            { expiresIn: "1d" }
-          );
+              console.log("in if statement empty array")
+              // res.clearCookie("jwt", { httpOnly: true, secure: true, path: "/" })
+              // res.clearCookie("refreshToken", { httpOnly: true, secure: true, path: "/" })
+              return res.status(401).send({ message: "Please log in" });
+            }
+              
+            // Sign new access token and refresh token
+            const newAccessToken = jwt.sign(
+              {
+                id: decodedRefresh.id,
+                username: decodedRefresh.username,
+                email: decodedRefresh.email,
+                institution_id: decodedRefresh.institution_id,
+                role_name: decodedRefresh.role_name,
+                isLoggedIn: decodedRefresh.isLoggedIn,
+              },
+              jwtSecret,
+              { expiresIn: "1m" }
+            );
 
-          // Update tokens in database
-          const deleteQuery =
-            "DELETE FROM tokens WHERE user_id = ? AND token_type_id = 2";
-          await db.connection.query(deleteQuery, [decodedRefresh.id]);
+            const newRefreshToken = jwt.sign(
+              {
+                id: decodedRefresh.id,
+                username: decodedRefresh.username,
+                email: decodedRefresh.email,
+                institution_id: decodedRefresh.institution_id,
+                role_name: decodedRefresh.role_name,
+                isLoggedIn: decodedRefresh.isLoggedIn,
+              },
+              jwtSecret,
+              { expiresIn: "6h" }
+            );
 
-          const insertQuery =
-            "INSERT INTO tokens (token_string, token_type_id, user_id) VALUES (?, ?, ?)";
-          await db.connection.query(insertQuery, [
-            newRefreshToken,
-            2,
-            decodedRefresh.id,
-          ]);
+            // Update tokens in the database
+            const deleteQuery = "DELETE FROM tokens WHERE user_id = ? AND token_type_id = 2";
+            await db.connection.query(deleteQuery, [decodedRefresh.id]);
 
-          res.clearCookie("jwt", { httpOnly: true, secure: true, path: "/" });
-          res.clearCookie("refreshToken", {
-            httpOnly: true,
-            secure: true,
-            path: "/",
-          });
+            const insertQuery =
+              "INSERT INTO tokens (token_string, token_type_id, user_id) VALUES (?, ?, ?)";
+            await db.connection.query(insertQuery, [
+              newRefreshToken,
+              2,
+              decodedRefresh.id,
+            ]);
 
-          res.cookie("jwt", newAccessToken, { httpOnly: true, secure: true });
-          res.cookie("refreshToken", newRefreshToken, {
-            httpOnly: true,
-            secure: true,
-          });
-          
-          // Send success response
-          return res.send({message: "Tokens refreshed successfully.", newAccessToken, newRefreshToken});
-        } catch (refreshError) {
-          console.error("Failed to refresh token:", refreshError);
-          return res
-            .status(401)
-            .json({ message: "Session expired. Please log in again." }); // Return immediately
+            // Clear old cookies
+            res.clearCookie("jwt", { httpOnly: true, secure: true, path: "/" });
+            res.clearCookie("refreshToken", {
+              httpOnly: true,
+              secure: true,
+              path: "/",
+            });
+
+            // Set new cookies
+            res.cookie("jwt", newAccessToken, { httpOnly: true, secure: true });
+            res.cookie("refreshToken", newRefreshToken, {
+              httpOnly: true,
+              secure: true,
+            });
+
+            return res.send({ newAccessToken, newRefreshToken });
+          } catch (refreshError) {
+            // Log the error and send the response
+            console.error("Error caught on endpoint:", req.originalUrl, "Failed to refresh token:", refreshError);
+            return res.status(401).send({ message: "Please log in" });
+          }
+        } else {
+          return res.status(401).send({ message: "Please log in" });
         }
-      } else {
-        return res.status(401).json({ message: "Unauthorized" }); // Return immediately
       }
-    }
-    newAccessToken = jwtToken;
-    console.log("Token not expired");
-    return res.send({ message: "Token is still valid.", newAccessToken});
-  });
+
+      // If the JWT token is still valid, return it as the new access token
+      const newAccessToken = jwtToken;
+      return res.send({ newAccessToken });
+    });
+  } catch (err) {
+    // Catch any error that occurs within the outer try-catch block
+    console.error("Error in /api/auth/refresh endpoint:", err);
+    return res.status(500).send({ message: "Internal Error" });
+  }
 });
 
+
+// ONLY FOR DEVELOPMENT. DELETE FOR PROD
 router.post("/api/auth/register", async (req, res) => {
   const requestBody = req.body;
 
@@ -121,75 +132,54 @@ router.post("/api/auth/register", async (req, res) => {
     ]);
     res.status(200).json({ success: true, data: registeredUser });
   } else {
-    res.status(500).send({ message: "failed" });
+    res.status(500).send({ message: "Internal Error" });
   }
 });
 
 router.post("/api/auth/login", async (req, res) => {
   const requestBody = req.body;
-
+  const isPasswordValid = hashElement(requestBody.password);
   try {
-    const findUserByEmail = await findUser(requestBody.email);
+    const findUserByEmail = await findUser(requestBody.email, isPasswordValid);
 
-    if (!findUserByEmail || Object.keys(findUserByEmail).length === 0) {
-      return res.status(500).send({ message: "failed" });
+    if (!findUserByEmail || findUserByEmail.length === 0) {
+      return res.status(401).send({ message: "The e-mail or password was incorrect. Please try again" });
     }
-
-    const isPasswordValid = verifyPassword(
-      requestBody.password,
-      findUserByEmail.password
-    );
-    if (!isPasswordValid) {
-      return res.status(400).send({ message: "invalid credentials" });
-    }
-    // Exclude the password from the JWT payload
-    const { password, ...userWithoutPassword } = findUserByEmail;
-    userWithoutPassword.isLoggedIn = true;
+  
     const accessToken = jwt.sign(
-      userWithoutPassword,
+      findUserByEmail,
       process.env.JWT_SECRET,
       { expiresIn: "1m" }
     );
     const refreshToken = jwt.sign(
-      userWithoutPassword,
+      findUserByEmail,
       process.env.JWT_SECRET,
-      { expiresIn: "1d" }
+      { expiresIn: "6h" }
     );
-    const deleteQuery =
-      "DELETE FROM tokens WHERE user_id = ? AND token_type_id = 2";
-    const [deleteTokenFromDb] = await db.connection.query(deleteQuery, [
-      findUserByEmail.id,
-    ]);
+    const deleteQuery = "DELETE FROM tokens WHERE user_id = ? AND token_type_id = 2";
+    const [deleteTokenFromDb] = await db.connection.query(deleteQuery, [findUserByEmail.id]);
 
-    const insertQuery =
-      "INSERT INTO tokens (token_string, token_type_id, user_id) VALUES (?, ?, ?)";
-    const [refreshTokenFromDb] = await db.connection.query(insertQuery, [
-      refreshToken,
-      2,
-      findUserByEmail.id,
-    ]);
+    const insertQuery ="INSERT INTO tokens (token_string, token_type_id, user_id) VALUES (?, ?, ?)";
+    const [refreshTokenFromDb] = await db.connection.query(insertQuery, [refreshToken, 2,findUserByEmail.id]);
+
     res.cookie("jwt", accessToken, { httpOnly: true, secure: true });
     res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true });
-    res.status(200).send({ message: "Success" });
+
+    res.send({ message: `Welcome, ${findUserByEmail.username}` }); 
+
   } catch (err) {
     console.error("Error during login:", err);
-    res.status(500).send({ message: "Server error" });
+    res.status(500).send({ message: "Internal Error" });
   }
 });
 
 router.get("/api/auth/logout", async (req, res) => {
   try {
-    // Clear the authentication cookies
     res.clearCookie("jwt", { httpOnly: true, secure: true, path: "/" });
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: true,
-      path: "/",
-    });
-
-    res.status(200).send({ message: "User logged out successfully" });
+    res.clearCookie("refreshToken", {httpOnly: true, secure: true, path: "/"});
+    res.send({message: "Goodbye" });
   } catch (error) {
-    res.status(500).send({ message: "An error occurred" });
+    res.status(500).send({ message: "Internal Error" });
   }
 });
 
