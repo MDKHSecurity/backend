@@ -46,7 +46,7 @@ router.get("/api/courses", authenticateToken, async (req, res) => {
         res.send(coursesWithDetails);
     } catch (error) {
         console.error("Error fetching courses:", error);
-        res.status(500).send({message: "Internal Error" });
+        res.status(500).send({message: "Something went wrong" });
     }
 });
 
@@ -153,11 +153,11 @@ router.post("/api/courses", authenticateToken, async (req, res) => {
             ...requestBody       
         };
 
-        res.send(newCourse);
+        res.send({message: `Successfully created course: ${course_name}`, newCourse});
     } catch (error) {
         console.error("Error creating course:", error);
         await db.connection.rollback();
-        res.status(500).json({message: "Internal Error" });
+        res.status(500).send({message: "Something went wrong" });
     }
 });
 
@@ -192,15 +192,13 @@ router.delete("/api/courses/:id", authenticateToken, async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(400).send({message: "Bad Request" });
         }
-
-        res.status(200).json({ success: true, message: "Course deleted successfully" });
+        
+        res.status(200).json({ message: `Successfully deleted course`});
     } catch (error) {
         console.error("Error deleting course:", error);
-
         // Rollback on error
         await db.connection.rollback();
-
-        res.status(500).json({ success: false, message: "An error occurred while deleting the course" });
+        res.status(500).json({message: "An error occurred while deleting the course" });
     }
 });
 

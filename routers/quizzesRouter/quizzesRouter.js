@@ -32,7 +32,7 @@ router.get("/api/quizzes", authenticateToken, async (req, res) => {
         res.send(quizzesWithDetails);
     } catch (error) {
         console.error("Error fetching quizzes:", error);
-        res.status(500).send({message: "Internal Error" });
+        res.status(500).send({message: "Something went wrong" });
     }
 });
 
@@ -66,7 +66,7 @@ router.get("/api/quizzes/:id", authenticateToken, async (req, res) => {
         res.send(quiz);
     } catch (error) {
         console.error("Error fetching quiz:", error);
-        res.status(500).send({message: "Internal Error" });
+        res.status(500).send({message: "Something went wrong" });
     }
 });
 
@@ -97,13 +97,13 @@ router.post("/api/quizzes", authenticateToken, async (req, res) => {
             id: quiz.insertId,
             ...requestBody       
         };
-        res.send(newQuiz);
+        res.send( {message:`Successfully created quiz: ${quiz_name}`, newQuiz});
 
     } catch (error) {
         console.error("Error creating quiz:", error);
         // Rollback transaction on error
         await db.connection.rollback();
-        res.status(500).send({message: "Internal Error" });
+        res.status(500).send({message: "Something went wrong" });
     }
 });
 
@@ -115,10 +115,10 @@ router.delete("/api/quizzes/:id", authenticateToken, async (req, res) => {
             "DELETE FROM quizzes WHERE id = ?",
             [quizId]
         );
-        res.send({data: result});
+        res.send({message: `Successfully deleted quiz`, data: result});
     } catch (error) {
         console.error("Error fetching quizzes:", error);
-        res.status(500).send({message: "Internal Error" });
+        res.status(500).send({message: "Something went wrong" });
     }
 });
 

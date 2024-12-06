@@ -10,7 +10,7 @@ router.get("/api/questions", authenticateToken, async (req, res) => {
         res.send(questions);
     } catch (error) {
         console.error("Error fetching questions:", error);
-        res.status(500).send({message: "Internal Error" });
+        res.status(500).send({message: "Something went wrong" });
     }
 });
 
@@ -23,10 +23,10 @@ router.post("/api/questions", authenticateToken, async (req, res) => {
             id: result.insertId,
             ...requestBody       
         };
-        res.send(newQuestion);
+        res.send( {message:`Successfully created question: ${requestBody.question}`, newQuestion});
     } catch (error) {
         console.error("Error fetching questions:", error);
-        res.status(500).send({message: "Internal Error" });
+        res.status(500).send({message: "Something went wrong" });
     }
 });
 
@@ -37,10 +37,10 @@ router.delete("/api/questions/:id", authenticateToken, async (req, res) => {
             "DELETE FROM questions WHERE id = ?",
             [questionId]
         );
-        res.send({data: result});
+        res.send({message: `Successfully deleted question`, data: result});
     } catch (error) {
         console.error("Error fetching questions:", error);
-        res.status(500).send({message: "Internal Error" });
+        res.status(500).send({message: "Something went wrong" });
     }
 });
 

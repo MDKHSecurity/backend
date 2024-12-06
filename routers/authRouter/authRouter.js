@@ -21,20 +21,20 @@ router.post("/api/auth/refresh", async (req, res) => {
           if (!refreshToken) {
             // res.clearCookie("jwt", { httpOnly: true, secure: true, path: "/" })
             // res.clearCookie("refreshToken", { httpOnly: true, secure: true, path: "/" })
-            return res.status(401).json({ message: "Please log in" });
+            return res.status(401).json({ message: "We need you to login" });
           }
 
           try {
             const decodedRefresh = jwt.verify(refreshToken, jwtSecret);
             const query = `SELECT user_id FROM tokens WHERE user_id = ? AND token_type_id = 2`;
             const [tokens] = await db.connection.query(query, [decodedRefresh.id]);
-            console.log(tokens, "auth backend token from db")
+           
             if (tokens.length === 0) {
 
               console.log("in if statement empty array")
               // res.clearCookie("jwt", { httpOnly: true, secure: true, path: "/" })
               // res.clearCookie("refreshToken", { httpOnly: true, secure: true, path: "/" })
-              return res.status(401).send({ message: "Please log in" });
+              return res.status(401).send({ message: "We need you to login" });
             }
               
             // Sign new access token and refresh token
@@ -95,10 +95,10 @@ router.post("/api/auth/refresh", async (req, res) => {
           } catch (refreshError) {
             // Log the error and send the response
             console.error("Error caught on endpoint:", req.originalUrl, "Failed to refresh token:", refreshError);
-            return res.status(401).send({ message: "Please log in" });
+            return res.status(401).send({ message: "We need you to login" });
           }
         } else {
-          return res.status(401).send({ message: "Please log in" });
+          return res.status(401).send({ message: "We need you to login" });
         }
       }
 
@@ -109,7 +109,7 @@ router.post("/api/auth/refresh", async (req, res) => {
   } catch (err) {
     // Catch any error that occurs within the outer try-catch block
     console.error("Error in /api/auth/refresh endpoint:", err);
-    return res.status(500).send({ message: "Internal Error" });
+    return res.status(500).send({ message: "Something went wrong" });
   }
 });
 
@@ -132,7 +132,7 @@ router.post("/api/auth/register", async (req, res) => {
     ]);
     res.status(200).json({ success: true, data: registeredUser });
   } else {
-    res.status(500).send({ message: "Internal Error" });
+    res.status(500).send({ message: "Something went wrong" });
   }
 });
 
@@ -169,7 +169,7 @@ router.post("/api/auth/login", async (req, res) => {
 
   } catch (err) {
     console.error("Error during login:", err);
-    res.status(500).send({ message: "Internal Error" });
+    res.status(500).send({ message: "Something went wrong" });
   }
 });
 
@@ -179,7 +179,7 @@ router.get("/api/auth/logout", async (req, res) => {
     res.clearCookie("refreshToken", {httpOnly: true, secure: true, path: "/"});
     res.send({message: "Goodbye" });
   } catch (error) {
-    res.status(500).send({ message: "Internal Error" });
+    res.status(500).send({ message: "Something went wrong" });
   }
 });
 

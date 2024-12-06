@@ -30,33 +30,33 @@ router.get('/api/tokens/:token', async (req, res) => {
             return res.status(401).send({ message: "Talk to Administrator"});
         }
         res.send({ 
-            message: "Token is valid",
+            // message: "Token is valid",
             user_id: token.user_id,
             token_id: token.id  
         });
     } catch (error) {
         console.error("Error validating token:", error);
-        res.status(500).send({message: "Internal Error"});
+        res.status(500).send({message: "Something went wrong"});
     }
 });
 
 router.delete('/api/tokens/:id', async (req, res) => {
     try {
         const tokenId = req.params.id;  // Get the token ID from the URL parameter
-        console.log(tokenId,"<--Deletetoken")
+        
         // Query to delete the token from the database
         const deleteQuery = `DELETE FROM tokens WHERE id = ?`;
 
         const [result] = await db.connection.query(deleteQuery, [tokenId]);
         // Check if any rows were affected
         if (result.affectedRows === 0) {
-            return res.status(400).send({ message: "Not found" });
+            return res.status(400).send({ message: "Bad Request" });
         }
 
-        res.status(200).send({ message: "Token deleted successfully" });
+        res.status(200).send({ message: `Successfully deleted token`});
     } catch (error) {
         console.error("Error deleting token:", error);
-        res.status(500).send({ message: "Internal Error" });
+        res.status(500).send({ message: "Something went wrong" });
     }
 });
 export default router;

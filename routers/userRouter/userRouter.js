@@ -12,7 +12,7 @@ router.get("/api/users", authenticateToken, async (req, res) => {
     res.send(user);
   } catch (err) {
     console.error(err);
-    res.status(500).send({ message: "Internal Error" });
+    res.status(500).send({ message: "Something went wrong" });
   }
 });
 
@@ -72,7 +72,7 @@ router.get("/api/users/rooms", authenticateToken, async (req, res) => {
     res.send(userInfo);
   } catch (err) {
     console.error(err);
-    res.status(500).send({ message: "Internal Error" });
+    res.status(500).send({ message: "Something went wrong" });
   }
 });
 
@@ -114,7 +114,7 @@ router.get("/api/users/:institutionid", authenticateToken, async (req, res) => {
     });
     res.send(usersWithRooms);
   } catch (err) {
-    res.status(500).send({ message: "Internal Error" });
+    res.status(500).send({ message: "Something went wrong" });
   }
 });
 
@@ -129,10 +129,10 @@ router.post("/api/users/rooms", authenticateToken, async (req, res) => {
   const values = usersRooms.map(({ userId, roomId }) => [userId, roomId]);
   const query = `INSERT INTO users_rooms (user_id, room_id) VALUES ?`;
     await db.connection.query(query, [values]);
-    res.status(200).send({ assigned: usersRooms });
+    res.status(200).send({message:`Successfully assigned users to room`, assigned: usersRooms });
   } catch (err) {
     console.error(err);
-    res.status(500).send({ message: "Internal Error" });
+    res.status(500).send({ message: "Something went wrong" });
   }
 });
 
@@ -205,7 +205,7 @@ router.post("/api/users", authenticateToken, async (req, res) => {
         });
     } catch (error) {
         console.error("Error inserting users or sending emails:", error);
-        res.status(500).send({message: "Internal Error" });
+        res.status(500).send({message: "Something went wrong" });
     }
 });
 
@@ -219,10 +219,10 @@ router.patch('/api/users/:id', async (req, res) => {
       const query = `UPDATE users SET password = ? WHERE id = ?`;
       const [result] = await db.connection.query(query, [hash, user_id]);
 
-      res.status(200).send(result);
+      res.status(200).send({message:`Password updated. Please login`, result});
   } catch (error) {
       console.error("Error updating password for user:", user_id, error);
-      res.status(500).send({ message: "Internal Error" });
+      res.status(500).send({ message: "Something went wrong" });
   }
 });
 
@@ -241,10 +241,10 @@ router.delete('/api/users/rooms', authenticateToken, async (req, res) => {
 
   try {
     await db.connection.query(query, [values]);
-    res.send({ deleted: usersRooms });
+    res.send({message: `Successfully removed users from the room`, deleted: usersRooms });
   } catch (err) {
     console.error(err);
-    res.status(500).send({ message: "Internal Error" });
+    res.status(500).send({ message: "Something went wrong" });
   }
 });
 

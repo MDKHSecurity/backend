@@ -9,7 +9,7 @@ export async function authenticateToken(req, res, next) {
     // Verify the access token
     jwt.verify(jwtToken, jwtSecret, (err, user) => {
       if (err) {
-        return res.status(401).send({message: 'Please login' });
+        return res.status(401).send({message: 'We need you to login' });
       }
       req.user = user;
       next();
@@ -18,6 +18,6 @@ export async function authenticateToken(req, res, next) {
   } catch (error) {
     // Catch any unexpected errors
     console.error("Error during JWT verification:", error);
-    return res.status(500).send({ message: "Internal Error" });
+    return res.status(500).send({ message: "Something went wrong" });
   }
 }
