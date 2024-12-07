@@ -46,7 +46,6 @@ router.get("/api/rooms/:institutionid", authenticateToken, async (req, res) => {
 //Post a single room
 router.post("/api/rooms", authenticateToken, async (req, res) => {
   const body = req.body;
-
   if (!body.roomName && !body.institutionId) {
     return res.status(400).send({ message: "Bad Reqeust" });
   }

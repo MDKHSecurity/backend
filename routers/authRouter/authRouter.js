@@ -1,7 +1,7 @@
 import { Router } from "express";
 import db from "../../database/database.js";
 import jwt from "jsonwebtoken";
-import { findUser } from "../../utils/checks/findUsers.js";
+import { findUser, findUserNoPassword } from "../../utils/checks/findUsers.js";
 import { hashElement } from "../../utils/passwords/hashPassword.js";
 const router = Router();
 
@@ -19,8 +19,6 @@ router.post("/api/auth/refresh", async (req, res) => {
       if (err) {
         if (err.name === "TokenExpiredError") {
           if (!refreshToken) {
-            // res.clearCookie("jwt", { httpOnly: true, secure: true, path: "/" })
-            // res.clearCookie("refreshToken", { httpOnly: true, secure: true, path: "/" })
             return res.status(401).json({ message: "We need you to login" });
           }
 
@@ -30,36 +28,23 @@ router.post("/api/auth/refresh", async (req, res) => {
             const [tokens] = await db.connection.query(query, [decodedRefresh.id]);
            
             if (tokens.length === 0) {
-
-              console.log("in if statement empty array")
+              // console.log("in if statement empty array")
               // res.clearCookie("jwt", { httpOnly: true, secure: true, path: "/" })
               // res.clearCookie("refreshToken", { httpOnly: true, secure: true, path: "/" })
               return res.status(401).send({ message: "We need you to login" });
             }
-              
+            
+            const findUserByEmail = await findUserNoPassword(decodedRefresh.email);
+
             // Sign new access token and refresh token
             const newAccessToken = jwt.sign(
-              {
-                id: decodedRefresh.id,
-                username: decodedRefresh.username,
-                email: decodedRefresh.email,
-                institution_id: decodedRefresh.institution_id,
-                role_name: decodedRefresh.role_name,
-                isLoggedIn: decodedRefresh.isLoggedIn,
-              },
+              findUserByEmail,
               jwtSecret,
               { expiresIn: "1m" }
             );
 
             const newRefreshToken = jwt.sign(
-              {
-                id: decodedRefresh.id,
-                username: decodedRefresh.username,
-                email: decodedRefresh.email,
-                institution_id: decodedRefresh.institution_id,
-                role_name: decodedRefresh.role_name,
-                isLoggedIn: decodedRefresh.isLoggedIn,
-              },
+              findUserByEmail,
               jwtSecret,
               { expiresIn: "6h" }
             );
