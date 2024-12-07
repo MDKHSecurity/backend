@@ -9,7 +9,7 @@ export async function authenticateToken(req, res, next) {
     // Verify the access token
     jwt.verify(jwtToken, jwtSecret, (err, user) => {
       if (err) {
-        return res.status(401).send({message: 'We need you to login' });
+        return res.status(401).send({invalid: true, message: 'We need you to login' });
       }
       req.user = user;
       next();
