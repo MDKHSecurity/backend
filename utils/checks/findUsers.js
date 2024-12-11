@@ -1,4 +1,5 @@
 import db from "../../database/database.js";
+import { logErrorToFile } from "../logErrorToFile/logErrorToFile.js";
 
 export async function findUser(email, password) {
     try {
@@ -26,9 +27,9 @@ export async function findUser(email, password) {
         }
         return result[0];
 
-    } catch (err) {
-        console.error("Database query failed:", err);
-        throw err; // Re-throw error or handle it
+    } catch (error) {
+        logErrorToFile(error, "findUsers/findUsers.js");
+        throw err;
     }
 }
 
@@ -58,8 +59,8 @@ export async function findUserNoPassword(email) {
         }
         return result[0];
 
-    } catch (err) {
-        console.error("Database query failed:", err);
-        throw err; // Re-throw error or handle it
+    } catch (error) {
+        logErrorToFile(error, "findUsers/findUsers.js");
+        throw error;
     }
 }

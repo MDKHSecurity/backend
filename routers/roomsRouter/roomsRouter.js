@@ -1,7 +1,7 @@
 import { Router } from "express";
 import db from "../../database/database.js";
 import { authenticateToken } from "../middleware/verifyJWT.js";
-
+import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
 const router = Router();
 
 router.get("/api/rooms/:institutionid", authenticateToken, async (req, res) => {
@@ -37,8 +37,8 @@ router.get("/api/rooms/:institutionid", authenticateToken, async (req, res) => {
       };
     });
     res.send(roomsWithCourses);
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    logErrorToFile(error, req.originalUrl)
     res.status(500).send({message: "Internal Error" });
   }
 });
@@ -61,6 +61,7 @@ router.post("/api/rooms", authenticateToken, async (req, res) => {
     return res.send({message: `Successfully created room: ${body.roomName}`, roomId: result.insertId});
 
   } catch (error) {
+    logErrorToFile(error, req.originalUrl)
     return res.status(500).send({message: "Something went wrong"});
   }
 });
@@ -77,7 +78,8 @@ router.post("/api/rooms/courses", authenticateToken, async (req, res) => {
   const query = `INSERT INTO rooms_courses (room_id, course_id) VALUES ?`;
     await db.connection.query(query, [values]);
     res.send({message:`Successfully assigned course to room`, assigned: roomsCourses});
-  } catch (err) {
+  } catch (error) {
+    logErrorToFile(error, req.originalUrl);
     res.status(500).send({ message: "Something went wrong"});
   }
 });
@@ -98,7 +100,8 @@ router.delete("/api/rooms/courses", authenticateToken, async (req, res) => {
 
     await db.connection.query(query, [values]);
     res.send({message: `Successfully removed course from room`, deleted: roomsCourses });
-  } catch (err) {
+  } catch (error) {
+    logErrorToFile(error, req.originalUrl);
     res.status(500).send({ message: "Something went wrong" });
   }
 });
@@ -109,7 +112,8 @@ router.delete("/api/rooms/:roomid", authenticateToken, async (req, res) => {
     const [result] = await db.connection.query("DELETE FROM rooms WHERE id = ?", [roomId]);
     res.send({message: `Successfully deleted room`, data: result});
   } catch (error) {
-    res.status(500).send({ message: "Internal Error" });
+    logErrorToFile(error, req.originalUrl);
+    res.status(500).send({ message: "Something went wrong" });
   }
 });
 

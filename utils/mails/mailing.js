@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer"
 import dotenv from "dotenv/config"
-
+import { logErrorToFile } from "../logErrorToFile/logErrorToFile.js";
 
 const transporter = nodemailer.createTransport({
     host: 'smtp.ethereal.email',
@@ -30,7 +30,7 @@ async function sendMail(subject, message, users) {
         console.log("Message sent: %s", info.messageId);
         console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info)); 
     } catch (error) {
-        console.error("Error sending email:", error);
+        logErrorToFile(error, "mails/mailing.js")
     }
 }
 

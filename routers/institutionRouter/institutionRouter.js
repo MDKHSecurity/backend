@@ -1,6 +1,7 @@
 import { Router } from "express";
 import db from "../../database/database.js";
 import { authenticateToken } from "../middleware/verifyJWT.js";
+import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
 const router = Router();
 
 router.get("/api/institutions", authenticateToken, async (req, res) => {
@@ -9,7 +10,7 @@ router.get("/api/institutions", authenticateToken, async (req, res) => {
         res.send(institutions);
         
     } catch (error) {
-        console.error("Error fetching quizzes:", error);
+        logErrorToFile(error, req.originalUrl);
         res.status(500).send({message: "Something went wrong" });
     }
 });
@@ -26,7 +27,7 @@ router.post("/api/institutions", authenticateToken, async (req, res) => {
         res.send({message: `Successfully created institution: ${requestBody.institution_name}`, newInstitution});
 
     } catch (error) {
-        console.error("Error fetching institutions:", error);
+        logErrorToFile(error, req.originalUrl);
         res.status(500).send({message: "Something went wrong" });
     }
 });
@@ -42,7 +43,7 @@ router.delete("/api/institutions/:id", authenticateToken, async (req, res) => {
         res.send({message: `Successfully deleted institution`, result});
 
     } catch (error) {
-        console.error("Error fetching institutions:", error);
+        logErrorToFile(error, req.originalUrl);
         res.status(500).send({message: "Something went wrong" });
     }
 });

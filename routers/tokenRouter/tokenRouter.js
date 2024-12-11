@@ -1,20 +1,15 @@
 import { Router } from "express";
-import pbkdf2 from "pbkdf2";
 import db from "../../database/database.js";
-import jwt from "jsonwebtoken";
-import { hashElement, verifyPassword } from "../../utils/passwords/hashPassword.js"
-import { authenticateToken } from "../middleware/verifyJWT.js";
+import { hashElement } from "../../utils/passwords/hashPassword.js"
+import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
 const router = Router();
 
 const jwtSecret = process.env.JWT_SECRET;
 
 router.get('/api/tokens/:token', async (req, res) => {
     try {
-        console.log(req.body)
         const tokenString = req.params.token;
-        console.log(tokenString, "<-- Tokenstring from param")
         const hash = hashElement(tokenString)
-        console.log(hash, "<-- Tokenstring hashed param")
     
         const tokenQuery = `
             SELECT id, token_string, expires_at, user_id 
@@ -35,7 +30,7 @@ router.get('/api/tokens/:token', async (req, res) => {
             token_id: token.id  
         });
     } catch (error) {
-        console.error("Error validating token:", error);
+        logErrorToFile(error, req.originalUrl);
         res.status(500).send({message: "Something went wrong"});
     }
 });
@@ -55,7 +50,7 @@ router.delete('/api/tokens/:id', async (req, res) => {
 
         res.status(200).send({ message: `Successfully deleted token`});
     } catch (error) {
-        console.error("Error deleting token:", error);
+        logErrorToFile(error, req.originalUrl);
         res.status(500).send({ message: "Something went wrong" });
     }
 });
