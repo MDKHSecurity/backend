@@ -1,3 +1,7 @@
 node_modules
 .idea
 .env
+
+back.pem
+cert.pem
+csr.pem
