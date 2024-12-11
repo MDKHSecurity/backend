@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-
+import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
 const jwtSecret = process.env.JWT_SECRET;
 
 export async function authenticateToken(req, res, next) {
@@ -16,8 +16,7 @@ export async function authenticateToken(req, res, next) {
     });
 
   } catch (error) {
-    // Catch any unexpected errors
-    console.error("Error during JWT verification:", error);
+    logErrorToFile(error, req.originalUrl);
     return res.status(500).send({ message: "Something went wrong" });
   }
 }

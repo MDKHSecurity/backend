@@ -1,6 +1,7 @@
 import { Router } from "express";
 import db from "../../database/database.js";
 import { authenticateToken } from "../middleware/verifyJWT.js";
+import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
 const router = Router();
 
 router.get("/api/questions", authenticateToken, async (req, res) => {
@@ -9,7 +10,7 @@ router.get("/api/questions", authenticateToken, async (req, res) => {
         const [questions] = await db.connection.query("SELECT * FROM questions");
         res.send(questions);
     } catch (error) {
-        console.error("Error fetching questions:", error);
+        logErrorToFile(error, req.originalUrl);
         res.status(500).send({message: "Something went wrong" });
     }
 });
@@ -25,7 +26,7 @@ router.post("/api/questions", authenticateToken, async (req, res) => {
         };
         res.send( {message:`Successfully created question: ${requestBody.question}`, newQuestion});
     } catch (error) {
-        console.error("Error fetching questions:", error);
+        logErrorToFile(error, req.originalUrl);
         res.status(500).send({message: "Something went wrong" });
     }
 });
@@ -39,7 +40,7 @@ router.delete("/api/questions/:id", authenticateToken, async (req, res) => {
         );
         res.send({message: `Successfully deleted question`, data: result});
     } catch (error) {
-        console.error("Error fetching questions:", error);
+        logErrorToFile(error, req.originalUrl);
         res.status(500).send({message: "Something went wrong" });
     }
 });

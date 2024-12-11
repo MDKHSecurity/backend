@@ -1,13 +1,12 @@
 import { Router } from "express";
 import db from "../../database/database.js";
 import { authenticateToken } from "../middleware/verifyJWT.js";
-
+import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
 const router = Router();
 
 
 router.get("/api/courses", authenticateToken, async (req, res) => {
     try {
-      
         const [courses] = await db.connection.query("SELECT * FROM courses");
 
         // Find courses with quizzes and videos
@@ -45,14 +44,14 @@ router.get("/api/courses", authenticateToken, async (req, res) => {
         );
         res.send(coursesWithDetails);
     } catch (error) {
-        console.error("Error fetching courses:", error);
+        logErrorToFile(error, req.originalUrl);
         res.status(500).send({message: "Something went wrong" });
     }
 });
 
 router.get("/api/courses/:courseId", authenticateToken, async (req, res) => {
     const { courseId } = req.params;
-  
+
     try {
       const [course] = await db.connection.query(
         "SELECT * FROM courses WHERE id = ?", [courseId]
@@ -107,7 +106,7 @@ router.get("/api/courses/:courseId", authenticateToken, async (req, res) => {
   
       res.send(courseWithDetails);
     } catch (error) {
-      console.error("Error fetching course details:", error);
+      logErrorToFile(error, req.originalUrl);
       res.status(500).send({message: "Internal Error" });
     }
   });
@@ -155,7 +154,7 @@ router.post("/api/courses", authenticateToken, async (req, res) => {
 
         res.send({message: `Successfully created course: ${course_name}`, newCourse});
     } catch (error) {
-        console.error("Error creating course:", error);
+        logErrorToFile(error, req.originalUrl);
         await db.connection.rollback();
         res.status(500).send({message: "Something went wrong" });
     }
@@ -195,7 +194,7 @@ router.delete("/api/courses/:id", authenticateToken, async (req, res) => {
         
         res.status(200).json({ message: `Successfully deleted course`});
     } catch (error) {
-        console.error("Error deleting course:", error);
+        logErrorToFile(error, req.originalUrl);
         // Rollback on error
         await db.connection.rollback();
         res.status(500).json({message: "An error occurred while deleting the course" });

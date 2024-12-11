@@ -59,6 +59,10 @@ app.use(roomsRouter);
 import statisticsRouter from "./routers/statisticsRouter/statisticsRouter.js";
 app.use(statisticsRouter);
 
+import loggingRouter from "./routers/loggingRouter/loggingRouter.js";
+app.use(loggingRouter);
+
+
 // Create an HTTPS server
 const sslServer = https.createServer({
   key: fs.readFileSync(path.join(__dirname, 'cert', 'back-key.pem')),  // Path to private key
@@ -70,3 +74,6 @@ const PORT = process.env.PORT || 8080;
 sslServer.listen(PORT, () => {
   console.log(`Server is running on https://localhost:${PORT}`);
 });
+
+
+

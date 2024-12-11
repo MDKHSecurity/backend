@@ -1,29 +1,36 @@
 import { Router } from "express";
 import db from "../../database/database.js";
 import { authenticateToken } from "../middleware/verifyJWT.js";
+import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
 
 const router = Router();
 
 router.post("/api/statistics", authenticateToken, async (req, res) => {
   const body = req.body;
   try {
-  const values = [
-    [
-      body.userId,
-      body.roomId,
-      body.courseId,
-      body.totalQuestions,
-      body.correctAnswers,
-    ],
-  ];
-  const query = `INSERT INTO courses_statistics (user_id, room_id, course_id, total_questions, correct_answers) VALUES ?`;
+    const { userId, roomId, courseId, totalQuestions, correctAnswers } = body;
 
-    await db.connection.query(query, [values]);
-    res.send({message: "Success"});
-  } catch (err) {
+    const checkQuery = `
+      SELECT * FROM courses_statistics 
+      WHERE user_id = ? AND room_id = ? AND course_id = ?`;
+    const [existingRows] = await db.connection.query(checkQuery, [userId, roomId, courseId]);
+
+    if (existingRows.length > 0) {
+      return res.send({ message: "Course have been completed" });
+    }
+
+    const insertQuery = `
+      INSERT INTO courses_statistics (user_id, room_id, course_id, total_questions, correct_answers) 
+      VALUES (?, ?, ?, ?, ?)`;
+    await db.connection.query(insertQuery, [userId, roomId, courseId, totalQuestions, correctAnswers]);
+
+    res.send({ message: "Course have been completed" });
+  } catch (error) {
+    logErrorToFile(error, req.originalUrl);
     res.status(500).send({ message: "Something went wrong" });
   }
 });
+
 
 router.get("/api/statistics/:institutionId", authenticateToken, async (req, res) => {
     const { institutionId } = req.params;
@@ -68,7 +75,8 @@ router.get("/api/statistics/:institutionId", authenticateToken, async (req, res)
       };
 
       res.send(institutionStats);
-    } catch (err) {
+    } catch (error) {
+      logErrorToFile(error, req.originalUrl);
       res.status(500).send({message: "Something went wrong"});
     }
   }

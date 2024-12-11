@@ -1,6 +1,7 @@
     import { Router } from "express";
     import db from "../../database/database.js";
-import { authenticateToken } from "../middleware/verifyJWT.js";
+    import { authenticateToken } from "../middleware/verifyJWT.js";
+    import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
     const router = Router();
 
     router.get("/api/videos", authenticateToken, async (req, res) => {
@@ -8,7 +9,7 @@ import { authenticateToken } from "../middleware/verifyJWT.js";
             const [videos] = await db.connection.query("SELECT * FROM videos");
             res.send(videos);
         } catch (error) {
-            console.error("Error fetching videos:", error);
+            logErrorToFile(error, req.originalUrl);
             res.status(500).send({ success: false, message: "Something went wrong" });
         }
     });
@@ -25,7 +26,7 @@ import { authenticateToken } from "../middleware/verifyJWT.js";
             };
             res.send( {message:`Successfully created video: ${requestBody.video_name}`, newVideo});
         } catch (error) {
-            console.error("Error fetching videos:", error);
+            logErrorToFile(error, req.originalUrl);
             res.status(500).send({ success: false, message: "Something went wrong" });
         }
     });
@@ -40,7 +41,7 @@ import { authenticateToken } from "../middleware/verifyJWT.js";
             res.json({message: `Successfully deleted video`, data: result});
 
         } catch (error) {
-            console.error("Error fetching videos:", error);
+            logErrorToFile(error, req.originalUrl);
             res.status(500).send({ success: false, message: "Something went wrong" });
         }
     });
