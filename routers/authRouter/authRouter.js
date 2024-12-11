@@ -3,6 +3,8 @@ import db from "../../database/database.js";
 import jwt from "jsonwebtoken";
 import { findUser, findUserNoPassword } from "../../utils/checks/findUsers.js";
 import { hashElement } from "../../utils/passwords/hashPassword.js";
+import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
+import { logLoginAttempt } from "../../utils/logLoginAttempt/logLoginAttempt.js";
 const router = Router();
 
 const jwtSecret = process.env.JWT_SECRET;
@@ -28,9 +30,6 @@ router.post("/api/auth/refresh", async (req, res) => {
             const [tokens] = await db.connection.query(query, [decodedRefresh.id]);
            
             if (tokens.length === 0) {
-              // console.log("in if statement empty array")
-              // res.clearCookie("jwt", { httpOnly: true, secure: true, path: "/" })
-              // res.clearCookie("refreshToken", { httpOnly: true, secure: true, path: "/" })
               return res.status(401).send({ message: "We need you to login" });
             }
             
@@ -77,9 +76,8 @@ router.post("/api/auth/refresh", async (req, res) => {
             });
 
             return res.send({ newAccessToken, newRefreshToken });
-          } catch (refreshError) {
-            // Log the error and send the response
-            console.error("Error caught on endpoint:", req.originalUrl, "Failed to refresh token:", refreshError);
+          } catch (error) {
+            logErrorToFile(error, req.originalUrl);
             return res.status(401).send({ message: "We need you to login" });
           }
         } else {
@@ -91,9 +89,8 @@ router.post("/api/auth/refresh", async (req, res) => {
       const newAccessToken = jwtToken;
       return res.send({ newAccessToken });
     });
-  } catch (err) {
-    // Catch any error that occurs within the outer try-catch block
-    console.error("Error in /api/auth/refresh endpoint:", err);
+  } catch (error) {
+    logErrorToFile(error, req.originalUrl);
     return res.status(500).send({ message: "Something went wrong" });
   }
 });
@@ -123,12 +120,14 @@ router.post("/api/auth/register", async (req, res) => {
 
 router.post("/api/auth/login", async (req, res) => {
   const requestBody = req.body;
-  const isPasswordValid = hashElement(requestBody.password);
   try {
+  const isPasswordValid = hashElement(requestBody.password);
     const findUserByEmail = await findUser(requestBody.email, isPasswordValid);
-
+    const clientIp = req.socket.remoteAddress;
+    const clientPort = req.socket.remotePort;
     if (!findUserByEmail || findUserByEmail.length === 0) {
-      return res.status(401).send({ message: "The e-mail or password was incorrect. Please try again" });
+      logLoginAttempt( `Failed login attempt for email: ${requestBody.email} from IP: ${clientIp}:${clientPort}`, req.originalUrl)
+      return res.status(401).send({ message: "The e-mail or password was incorrect. Please try again", isLogin: true });
     }
   
     const accessToken = jwt.sign(
@@ -152,8 +151,8 @@ router.post("/api/auth/login", async (req, res) => {
 
     res.send({ message: `Welcome, ${findUserByEmail.username}` }); 
 
-  } catch (err) {
-    console.error("Error during login:", err);
+  } catch (error) {
+    logErrorToFile(error, req.originalUrl);
     res.status(500).send({ message: "Something went wrong" });
   }
 });
@@ -164,6 +163,7 @@ router.get("/api/auth/logout", async (req, res) => {
     res.clearCookie("refreshToken", {httpOnly: true, secure: true, path: "/"});
     res.send({message: "Goodbye" });
   } catch (error) {
+    logErrorToFile(error, req.originalUrl);
     res.status(500).send({ message: "Something went wrong" });
   }
 });

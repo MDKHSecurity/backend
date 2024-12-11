@@ -1,6 +1,7 @@
 import { Router } from "express";
 import db from "../../database/database.js";
 import { authenticateToken } from "../middleware/verifyJWT.js";
+import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
 const router = Router();
 
 router.get("/api/quizzes", authenticateToken, async (req, res) => {
@@ -31,7 +32,7 @@ router.get("/api/quizzes", authenticateToken, async (req, res) => {
         );           
         res.send(quizzesWithDetails);
     } catch (error) {
-        console.error("Error fetching quizzes:", error);
+        logErrorToFile(error, req.originalUrl);
         res.status(500).send({message: "Something went wrong" });
     }
 });
@@ -65,7 +66,7 @@ router.get("/api/quizzes/:id", authenticateToken, async (req, res) => {
 
         res.send(quiz);
     } catch (error) {
-        console.error("Error fetching quiz:", error);
+        logErrorToFile(error, req.originalUrl);
         res.status(500).send({message: "Something went wrong" });
     }
 });
@@ -100,8 +101,7 @@ router.post("/api/quizzes", authenticateToken, async (req, res) => {
         res.send( {message:`Successfully created quiz: ${quiz_name}`, newQuiz});
 
     } catch (error) {
-        console.error("Error creating quiz:", error);
-        // Rollback transaction on error
+        logErrorToFile(error, req.originalUrl);
         await db.connection.rollback();
         res.status(500).send({message: "Something went wrong" });
     }
@@ -117,7 +117,7 @@ router.delete("/api/quizzes/:id", authenticateToken, async (req, res) => {
         );
         res.send({message: `Successfully deleted quiz`, data: result});
     } catch (error) {
-        console.error("Error fetching quizzes:", error);
+        logErrorToFile(error, req.originalUrl);
         res.status(500).send({message: "Something went wrong" });
     }
 });
