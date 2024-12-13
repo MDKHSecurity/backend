@@ -58,7 +58,8 @@ router.post("/api/rooms", authenticateToken, async (req, res) => {
     }
 
     const [result] = await db.connection.query("INSERT INTO rooms (room_name, institution_id) VALUES (?, ?)", [body.roomName, body.institutionId]);
-    return res.send({message: `Successfully created room: ${body.roomName}`, roomId: result.insertId});
+
+    return res.send({message: `Successfully created room: ${body.roomName}`, roomName: body.roomName, roomId: result.insertId});
 
   } catch (error) {
     logErrorToFile(error, req.originalUrl)
