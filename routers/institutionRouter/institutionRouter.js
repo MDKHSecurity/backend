@@ -2,10 +2,15 @@ import { Router } from "express";
 import db from "../../database/database.js";
 import { authenticateToken } from "../middleware/verifyJWT.js";
 import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
+import { deleteRateLimiter, generalRateLimiter, postRateLimiter } from "../middleware/rateLimit.js";
 const router = Router();
 
-router.get("/api/institutions", authenticateToken, async (req, res) => {
+router.get("/api/institutions", authenticateToken, generalRateLimiter, async (req, res) => {
     try {
+        const current_role_name = req.user.role_name
+        if (current_role_name != "owner"){
+          res.status(403).send({message: 'Forbidden'})
+        } 
         const [institutions] = await db.connection.query("SELECT * FROM institutions"); 
         res.send(institutions);
         
@@ -15,9 +20,14 @@ router.get("/api/institutions", authenticateToken, async (req, res) => {
     }
 });
 
-router.post("/api/institutions", authenticateToken, async (req, res) => {
+router.post("/api/institutions", authenticateToken, postRateLimiter, async (req, res) => {
     const requestBody = req.body
+    const current_role_name = req.user.role_name
+    if (current_role_name != "owner"){
+      res.status(403).send({message: 'Forbidden'})
+    } 
     try {
+        
         const insertQuery = "INSERT INTO institutions (institution_name, city, address, licens_amount) VALUES (?, ?, ?, ?)";
         const [institution] = await db.connection.query(insertQuery, [requestBody.institution_name, requestBody.city, requestBody.address, requestBody.licens_amount]);
         const newInstitution = {
@@ -32,7 +42,11 @@ router.post("/api/institutions", authenticateToken, async (req, res) => {
     }
 });
 
-router.delete("/api/institutions/:id", authenticateToken, async (req, res) => {
+router.delete("/api/institutions/:id", authenticateToken, deleteRateLimiter, async (req, res) => {
+    const current_role_name = req.user.role_name
+    if (current_role_name != "owner"){
+      res.status(403).send({message: 'Forbidden'})
+    } 
     const institutionId = req.params.id;
 
     try {  

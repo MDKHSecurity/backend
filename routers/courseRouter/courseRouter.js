@@ -2,11 +2,17 @@ import { Router } from "express";
 import db from "../../database/database.js";
 import { authenticateToken } from "../middleware/verifyJWT.js";
 import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
+import { generalRateLimiter, postRateLimiter, deleteRateLimiter } from "../middleware/rateLimit.js";
 const router = Router();
 
 
-router.get("/api/courses", authenticateToken, async (req, res) => {
+router.get("/api/courses", authenticateToken, generalRateLimiter, async (req, res) => {
     try {
+      
+      const current_role_name = req.user.role_name
+      if (current_role_name != "admin" && current_role_name != "student" && current_role_name != "owner"){
+        res.status(403).send({message: 'Forbidden'})
+      } 
         const [courses] = await db.connection.query("SELECT * FROM courses");
 
         // Find courses with quizzes and videos
@@ -43,16 +49,23 @@ router.get("/api/courses", authenticateToken, async (req, res) => {
             })
         );
         res.send(coursesWithDetails);
+      
     } catch (error) {
         logErrorToFile(error, req.originalUrl);
         res.status(500).send({message: "Something went wrong" });
     }
 });
 
-router.get("/api/courses/:courseId", authenticateToken, async (req, res) => {
+router.get("/api/courses/:courseId", authenticateToken, generalRateLimiter, async (req, res) => {
     const { courseId } = req.params;
 
     try {
+      
+      const current_role_name = req.user.role_name
+      if (current_role_name != "admin" && current_role_name != "student" && current_role_name != "owner"){
+        res.status(403).send({message: 'Forbidden'})
+      } 
+      
       const [course] = await db.connection.query(
         "SELECT * FROM courses WHERE id = ?", [courseId]
       );
@@ -112,9 +125,14 @@ router.get("/api/courses/:courseId", authenticateToken, async (req, res) => {
   });
 
 
-router.post("/api/courses", authenticateToken, async (req, res) => {
+router.post("/api/courses", authenticateToken, postRateLimiter, async (req, res) => {
     const requestBody = req.body
     const { course_name, videos = [], quizzes = [] } = req.body;
+
+    const current_role_name = req.user.role_name
+    if (current_role_name != "owner"){
+      res.status(403).send({message: 'Forbidden'})
+    } 
     
     try {
     if (!course_name || !Array.isArray(videos) || !Array.isArray(quizzes)) {
@@ -160,9 +178,12 @@ router.post("/api/courses", authenticateToken, async (req, res) => {
     }
 });
 
-router.delete("/api/courses/:id", authenticateToken, async (req, res) => {
+router.delete("/api/courses/:id", authenticateToken, deleteRateLimiter, async (req, res) => {
     const courseId = req.params.id;
-
+    const current_role_name = req.user.role_name
+    if (current_role_name != "owner"){
+      res.status(403).send({message: 'Forbidden'})
+    } 
     try {
         // Begin transaction
         await db.connection.beginTransaction();

@@ -2,11 +2,12 @@ import { Router } from "express";
 import db from "../../database/database.js";
 import { hashElement } from "../../utils/passwords/hashPassword.js"
 import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
+import { deleteRateLimiter, generalRateLimiter } from "../middleware/rateLimit.js";
 const router = Router();
 
 const jwtSecret = process.env.JWT_SECRET;
 
-router.get('/api/tokens/:token', async (req, res) => {
+router.get('/api/tokens/:token', generalRateLimiter, async (req, res) => {
     try {
         const tokenString = req.params.token;
         const hash = hashElement(tokenString)
@@ -35,7 +36,7 @@ router.get('/api/tokens/:token', async (req, res) => {
     }
 });
 
-router.delete('/api/tokens/:id', async (req, res) => {
+router.delete('/api/tokens/:id', deleteRateLimiter, async (req, res) => {
     try {
         const tokenId = req.params.id;  // Get the token ID from the URL parameter
         

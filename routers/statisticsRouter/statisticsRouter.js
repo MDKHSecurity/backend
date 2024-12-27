@@ -2,12 +2,17 @@ import { Router } from "express";
 import db from "../../database/database.js";
 import { authenticateToken } from "../middleware/verifyJWT.js";
 import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
+import { generalRateLimiter, postRateLimiter } from "../middleware/rateLimit.js";
 
 const router = Router();
 
-router.post("/api/statistics", authenticateToken, async (req, res) => {
+router.post("/api/statistics", authenticateToken, postRateLimiter, async (req, res) => {
   const body = req.body;
   try {
+    const current_role_name = req.user.role_name
+    if (current_role_name != "admin" && current_role_name != "student" && current_role_name != "owner"){
+      res.status(403).send({message: 'Forbidden'})
+    } 
     const { userId, roomId, courseId, totalQuestions, correctAnswers } = body;
 
     const checkQuery = `
@@ -32,10 +37,14 @@ router.post("/api/statistics", authenticateToken, async (req, res) => {
 });
 
 
-router.get("/api/statistics/:institutionId", authenticateToken, async (req, res) => {
+router.get("/api/statistics/:institutionId", authenticateToken, generalRateLimiter, async (req, res) => {
     const { institutionId } = req.params;
 
     try {
+      const current_role_name = req.user.role_name
+      if (current_role_name != "admin"){
+        res.status(403).send({message: 'Forbidden'})
+      } 
       const [rooms] = await db.connection.query(
         "SELECT id AS room_id, room_name FROM rooms WHERE institution_id = ? ORDER BY id",
         [institutionId]
