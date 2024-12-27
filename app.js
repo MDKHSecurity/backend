@@ -5,8 +5,10 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import https from 'https';
 import fs from 'fs';
+import helmet from "helmet";
 
 const app = express();
+app.use(helmet({strictTransportSecurity: true}));
 
 // Required to get __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);

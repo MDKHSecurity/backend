@@ -5,6 +5,7 @@ import { findUser, findUserNoPassword } from "../../utils/checks/findUsers.js";
 import { hashElement } from "../../utils/passwords/hashPassword.js";
 import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
 import { logLoginAttempt } from "../../utils/logLoginAttempt/logLoginAttempt.js";
+import { generalRateLimiter, loginRateLimiter } from "../middleware/rateLimit.js";
 const router = Router();
 
 const jwtSecret = process.env.JWT_SECRET;
@@ -39,7 +40,7 @@ router.post("/api/auth/refresh", async (req, res) => {
             const newAccessToken = jwt.sign(
               findUserByEmail,
               jwtSecret,
-              { expiresIn: "1m" }
+              { expiresIn: "15m" }
             );
 
             const newRefreshToken = jwt.sign(
@@ -97,7 +98,7 @@ router.post("/api/auth/refresh", async (req, res) => {
 
 
 // ONLY FOR DEVELOPMENT. DELETE FOR PROD
-router.post("/api/auth/register", async (req, res) => {
+router.post("/api/auth/register", generalRateLimiter, async (req, res) => {
   const requestBody = req.body;
 
   const findUserByUsername = await findUser(requestBody.email);
@@ -118,7 +119,7 @@ router.post("/api/auth/register", async (req, res) => {
   }
 });
 
-router.post("/api/auth/login", async (req, res) => {
+router.post("/api/auth/login", loginRateLimiter, async (req, res) => {
   const requestBody = req.body;
   try {
   const isPasswordValid = hashElement(requestBody.password);
@@ -133,8 +134,9 @@ router.post("/api/auth/login", async (req, res) => {
     const accessToken = jwt.sign(
       findUserByEmail,
       process.env.JWT_SECRET,
-      { expiresIn: "1m" }
+      { expiresIn: "15m" }
     );
+    console.log(accessToken)
     const refreshToken = jwt.sign(
       findUserByEmail,
       process.env.JWT_SECRET,
@@ -157,7 +159,7 @@ router.post("/api/auth/login", async (req, res) => {
   }
 });
 
-router.get("/api/auth/logout", async (req, res) => {
+router.get("/api/auth/logout", generalRateLimiter, async (req, res) => {
   try {
     res.clearCookie("jwt", { httpOnly: true, secure: true, path: "/" });
     res.clearCookie("refreshToken", {httpOnly: true, secure: true, path: "/"});

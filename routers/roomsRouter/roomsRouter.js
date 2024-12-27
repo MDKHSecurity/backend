@@ -2,11 +2,15 @@ import { Router } from "express";
 import db from "../../database/database.js";
 import { authenticateToken } from "../middleware/verifyJWT.js";
 import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
+import { deleteRateLimiter, generalRateLimiter, postRateLimiter } from "../middleware/rateLimit.js";
 const router = Router();
 
-router.get("/api/rooms/:institutionid", authenticateToken, async (req, res) => {
+router.get("/api/rooms/:institutionid", authenticateToken, generalRateLimiter, async (req, res) => {
   const institutionId = req.params.institutionid;
-
+  const current_role_name = req.user.role_name
+  if (current_role_name != "admin"){
+    res.status(403).send({message: 'Forbidden'})
+  } 
   try {
   const query = `
   SELECT 
@@ -44,8 +48,13 @@ router.get("/api/rooms/:institutionid", authenticateToken, async (req, res) => {
 });
 
 //Post a single room
-router.post("/api/rooms", authenticateToken, async (req, res) => {
+router.post("/api/rooms", authenticateToken, postRateLimiter, async (req, res) => {
   const body = req.body;
+
+  const current_role_name = req.user.role_name
+  if (current_role_name != "admin"){
+    res.status(403).send({message: 'Forbidden'})
+  } 
   if (!body.roomName && !body.institutionId) {
     return res.status(400).send({ message: "Bad Reqeust" });
   }
@@ -69,7 +78,12 @@ router.post("/api/rooms", authenticateToken, async (req, res) => {
 
 //Post a room and a course into the reference table rooms_courses
 
-router.post("/api/rooms/courses", authenticateToken, async (req, res) => {
+router.post("/api/rooms/courses", authenticateToken, postRateLimiter, async (req, res) => {
+
+  const current_role_name = req.user.role_name
+  if (current_role_name != "admin"){
+    res.status(403).send({message: 'Forbidden'})
+  } 
   const roomsCourses = req.body.assigned;
   if (!roomsCourses || roomsCourses.length === 0) {
     return res.status(400).send({ message: "Bad Request" });
@@ -85,7 +99,11 @@ router.post("/api/rooms/courses", authenticateToken, async (req, res) => {
   }
 });
 
-router.delete("/api/rooms/courses", authenticateToken, async (req, res) => {
+router.delete("/api/rooms/courses", authenticateToken, deleteRateLimiter, async (req, res) => {
+  const current_role_name = req.user.role_name
+  if (current_role_name != "admin"){
+    res.status(403).send({message: 'Forbidden'})
+  } 
   const roomsCourses = req.body.removed;
   if (!roomsCourses || roomsCourses.length === 0) {
     return res.status(400).send({ message: "Bad Request"});
@@ -107,9 +125,13 @@ router.delete("/api/rooms/courses", authenticateToken, async (req, res) => {
   }
 });
 
-router.delete("/api/rooms/:roomid", authenticateToken, async (req, res) => {
+router.delete("/api/rooms/:roomid", authenticateToken, deleteRateLimiter, async (req, res) => {
   const roomId = req.params.roomid;
   try {
+    const current_role_name = req.user.role_name
+    if (current_role_name != "admin"){
+      res.status(403).send({message: 'Forbidden'})
+    } 
     const [result] = await db.connection.query("DELETE FROM rooms WHERE id = ?", [roomId]);
     res.send({message: `Successfully deleted room`, data: result});
   } catch (error) {

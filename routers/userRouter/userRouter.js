@@ -6,10 +6,14 @@ import { sendMail } from "../../utils/mails/mailing.js";
 import { hashElement } from "../../utils/passwords/hashPassword.js"
 import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
 import crypto from "crypto";
+import { deleteRateLimiter, generalRateLimiter, postRateLimiter } from "../middleware/rateLimit.js";
 
-router.get("/api/users", authenticateToken, async (req, res) => {
+router.get("/api/users", authenticateToken, generalRateLimiter, async (req, res) => {
   const user = req.user;
   try {
+    if (!user){
+      res.status(403).send({message: 'Forbidden'})
+    }
     res.send(user);
   } catch (error) {
     logErrorToFile(error, req.originalUrl);
@@ -17,9 +21,14 @@ router.get("/api/users", authenticateToken, async (req, res) => {
   }
 });
 
-router.get("/api/users/rooms", authenticateToken, async (req, res) => {
+router.get("/api/users/rooms", authenticateToken, generalRateLimiter, async (req, res) => {
   const user = req.user;
   try {
+    const current_role_name = req.user.role_name
+    if (!current_role_name){
+      res.status(403).send({message: 'Forbidden'})
+    }
+
     // Step 1: Fetch basic user information
     const [users] = await db.connection.query(
       `
@@ -94,10 +103,16 @@ router.get("/api/users/rooms", authenticateToken, async (req, res) => {
 
 
 //Gets all users on instution and their assigned rooms
-router.get("/api/users/:institutionid", authenticateToken, async (req, res) => {
+router.get("/api/users/:institutionid", authenticateToken, generalRateLimiter, async (req, res) => {
   const institutionId = req.params.institutionid;
 
   try {
+
+    const current_role_name = req.user.role_name
+    if (current_role_name != "owner" && current_role_name != "admin"){
+      res.status(403).send({message: 'Forbidden'})
+    } 
+
   const query = `
     SELECT 
         u.id,
@@ -138,12 +153,19 @@ router.get("/api/users/:institutionid", authenticateToken, async (req, res) => {
 
 
 
-router.post("/api/users/rooms", authenticateToken, async (req, res) => {
+router.post("/api/users/rooms", authenticateToken, postRateLimiter, async (req, res) => {
+
+  const current_role_name = req.user.role_name
+  if (current_role_name != "admin"){
+    res.status(403).send({message: 'Forbidden'})
+  } 
+
   const usersRooms = req.body.assigned;
   try {
   if (!usersRooms || usersRooms.length === 0) {
     return res.status(400).send({ message: "Bad Reqeust" });
   }
+
   const values = usersRooms.map(({ userId, roomId }) => [userId, roomId]);
   const query = `
   INSERT INTO users_rooms (user_id, room_id) 
@@ -159,8 +181,13 @@ router.post("/api/users/rooms", authenticateToken, async (req, res) => {
 });
 
 
-router.post("/api/users", authenticateToken, async (req, res) => {
+router.post("/api/users", authenticateToken, postRateLimiter, async (req, res) => {
     try {
+
+      const current_role_name = req.user.role_name
+      if (current_role_name != "owner"){
+        res.status(403).send({message: 'Forbidden'})
+      } 
         const { institutionId, users} = req.body;
 
         // Map users into an array of values for insertion
@@ -232,7 +259,7 @@ router.post("/api/users", authenticateToken, async (req, res) => {
 });
 
 
-router.patch('/api/users/:id', async (req, res) => {
+router.patch('/api/users/:id', postRateLimiter, async (req, res) => {
   const password = req.body.password;
   const user_id = req.params.id;    
 
@@ -248,7 +275,12 @@ router.patch('/api/users/:id', async (req, res) => {
   }
 });
 
-router.delete('/api/users/rooms', authenticateToken, async (req, res) => {
+router.delete('/api/users/rooms', authenticateToken, deleteRateLimiter, async (req, res) => {
+
+  const current_role_name = req.user.role_name
+  if (current_role_name != "admin"){
+    res.status(403).send({message: 'Forbidden'})
+  } 
     const usersRooms = req.body.removed;
     if (!usersRooms || usersRooms.length === 0) {
         return res.status(400).send({ message: "Bad Request" });
@@ -271,6 +303,11 @@ router.delete('/api/users/rooms', authenticateToken, async (req, res) => {
 });
 
 router.delete("/api/users/:id", authenticateToken, async (req, res) => {
+
+  const current_role_name = req.user.role_name
+  if (current_role_name != "owner"){
+    res.status(403).send({message: 'Forbidden'})
+  } 
   const userId = req.params.id;
   try {  
       const [result] = await db.connection.query(
