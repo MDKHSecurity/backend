@@ -34,7 +34,7 @@ npm install
 
 ### 2. Create the Database
 
-Download database dump from: LINK
+Download database dump from: https://github.com/MDKHSecurity/backend/blob/main/database/MDKHSecurity_Database.zip
 
 Create scheme MDKHSecurity and navigate to Server --> Data import and import the dump.
 
