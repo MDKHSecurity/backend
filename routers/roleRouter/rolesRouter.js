@@ -1,8 +1,9 @@
 import { Router } from "express";
-import db from "../../database/database.js";
 import { authenticateToken } from "../middleware/verifyJWT.js";
 import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
 import { generalRateLimiter } from "../middleware/rateLimit.js";
+import db from "../../database/database.js";
+
 const router = Router();
 
 router.get("/api/roles", authenticateToken, generalRateLimiter, async (req, res) => {

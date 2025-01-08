@@ -1,13 +1,14 @@
 import { Router } from "express";
-import db from "../../database/database.js";
 import { authenticateToken } from "../middleware/verifyJWT.js";
 import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
 import { deleteRateLimiter, generalRateLimiter, postRateLimiter } from "../middleware/rateLimit.js";
+import { validateInput } from "../../utils/inputValidation/inputValidation.js";
+import db from "../../database/database.js";
+
 const router = Router();
 
 router.get("/api/quizzes", authenticateToken, generalRateLimiter, async (req, res) => {
     try {
-
         const current_role_name = req.user.role_name
         if (current_role_name != "admin" && current_role_name != "student" && current_role_name != "owner"){
           res.status(403).send({message: 'Forbidden'})
@@ -44,8 +45,8 @@ router.get("/api/quizzes", authenticateToken, generalRateLimiter, async (req, re
 });
 
 router.get("/api/quizzes/:id", authenticateToken, generalRateLimiter, async (req, res) => {
-    const { id } = req.params;
     try {
+        const { id } = req.params;
         const current_role_name = req.user.role_name
         if (current_role_name != "admin" && current_role_name != "student" && current_role_name != "owner"){
           res.status(403).send({message: 'Forbidden'})
@@ -83,16 +84,22 @@ router.get("/api/quizzes/:id", authenticateToken, generalRateLimiter, async (req
 
 //mangler at poste til quizzes_questions
 router.post("/api/quizzes", authenticateToken, postRateLimiter, async (req, res) => {
-    const requestBody = req.body;
-    const current_role_name = req.user.role_name
-    if (current_role_name != "owner"){
-      res.status(403).send({message: 'Forbidden'})
-    } 
-    const { quiz_name, number_of_questions, questions } = requestBody;
-    if (!quiz_name || !Array.isArray(questions) || questions.length === 0) {
-        return res.status(400).send({message: "Bad Request" });
-    }
     try {
+        const requestBody = req.body;
+        const current_role_name = req.user.role_name
+        if (current_role_name != "owner"){
+        res.status(403).send({message: 'Forbidden'})
+        }
+
+        const validation = await validateInput(req.body);
+        if (!validation) {
+            return res.status(400).json({ message: "Bad Request" });
+        }
+        
+        const { quiz_name, number_of_questions, questions } = requestBody;
+        if (!quiz_name || !Array.isArray(questions) || questions.length === 0) {
+            return res.status(400).send({message: "Bad Request" });
+        }
         // Start transaction
         await db.connection.beginTransaction();
 
@@ -123,12 +130,18 @@ router.post("/api/quizzes", authenticateToken, postRateLimiter, async (req, res)
 
 
 router.delete("/api/quizzes/:id", authenticateToken, deleteRateLimiter, async (req, res) => {
-    const quizId = req.params.id;
-    try {  
+    try {
+        const quizId = req.params.id;
         const current_role_name = req.user.role_name
         if (current_role_name != "owner"){
           res.status(403).send({message: 'Forbidden'})
-        } 
+        }
+        
+        const validation = await validateInput(req.body);
+        if (!validation) {
+            return res.status(400).json({ message: "Bad Request" });
+        }
+        
         const [result] = await db.connection.query(
             "DELETE FROM quizzes WHERE id = ?",
             [quizId]

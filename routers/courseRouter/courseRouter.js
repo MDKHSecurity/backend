@@ -1,21 +1,21 @@
 import { Router } from "express";
-import db from "../../database/database.js";
 import { authenticateToken } from "../middleware/verifyJWT.js";
 import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
 import { generalRateLimiter, postRateLimiter, deleteRateLimiter } from "../middleware/rateLimit.js";
+import { validateInput } from "../../utils/inputValidation/inputValidation.js";
+import db from "../../database/database.js";
+
 const router = Router();
 
 
 router.get("/api/courses", authenticateToken, generalRateLimiter, async (req, res) => {
     try {
-      
       const current_role_name = req.user.role_name
       if (current_role_name != "admin" && current_role_name != "student" && current_role_name != "owner"){
         res.status(403).send({message: 'Forbidden'})
       } 
         const [courses] = await db.connection.query("SELECT * FROM courses");
 
-        // Find courses with quizzes and videos
         const coursesWithDetails = await Promise.all(
             courses.map(async (course) => {
 
@@ -40,7 +40,6 @@ router.get("/api/courses", authenticateToken, generalRateLimiter, async (req, re
                     [course.id]
                 );
 
-                // Add the associated data to the course
                 return {
                     ...course,
                     videos,
@@ -49,7 +48,6 @@ router.get("/api/courses", authenticateToken, generalRateLimiter, async (req, re
             })
         );
         res.send(coursesWithDetails);
-      
     } catch (error) {
         logErrorToFile(error, req.originalUrl);
         res.status(500).send({message: "Something went wrong" });
@@ -57,10 +55,8 @@ router.get("/api/courses", authenticateToken, generalRateLimiter, async (req, re
 });
 
 router.get("/api/courses/:courseId", authenticateToken, generalRateLimiter, async (req, res) => {
-    const { courseId } = req.params;
-
-    try {
-      
+  try {  
+      const { courseId } = req.params;
       const current_role_name = req.user.role_name
       if (current_role_name != "admin" && current_role_name != "student" && current_role_name != "owner"){
         res.status(403).send({message: 'Forbidden'})
@@ -126,15 +122,19 @@ router.get("/api/courses/:courseId", authenticateToken, generalRateLimiter, asyn
 
 
 router.post("/api/courses", authenticateToken, postRateLimiter, async (req, res) => {
+  try {  
     const requestBody = req.body
     const { course_name, videos = [], quizzes = [] } = req.body;
 
     const current_role_name = req.user.role_name
     if (current_role_name != "owner"){
       res.status(403).send({message: 'Forbidden'})
-    } 
+    }
     
-    try {
+    const validation = await validateInput(req.body);
+      if (!validation) {
+        return res.status(400).json({ message: "Bad Request" });
+      }
     if (!course_name || !Array.isArray(videos) || !Array.isArray(quizzes)) {
 
         return res.status(400).json({message: "Bad Request" });
@@ -179,12 +179,20 @@ router.post("/api/courses", authenticateToken, postRateLimiter, async (req, res)
 });
 
 router.delete("/api/courses/:id", authenticateToken, deleteRateLimiter, async (req, res) => {
+  try {
     const courseId = req.params.id;
     const current_role_name = req.user.role_name
     if (current_role_name != "owner"){
       res.status(403).send({message: 'Forbidden'})
-    } 
-    try {
+    }
+
+    const validation = await validateInput(req.body);
+      if (!validation) {
+        return res.status(400).json({ message: "Bad Request" });
+      }
+
+    
+    
         // Begin transaction
         await db.connection.beginTransaction();
 
@@ -221,6 +229,5 @@ router.delete("/api/courses/:id", authenticateToken, deleteRateLimiter, async (r
         res.status(500).json({message: "An error occurred while deleting the course" });
     }
 });
-
 
 export default router;
