@@ -1,12 +1,15 @@
 import { Router } from "express";
-import db from "../../database/database.js";
 import { authenticateToken} from "../middleware/verifyJWT.js";
-const router = Router();
 import { sendMail } from "../../utils/mails/mailing.js";
 import { hashElement } from "../../utils/passwords/hashPassword.js"
 import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
-import crypto from "crypto";
 import { deleteRateLimiter, generalRateLimiter, postRateLimiter } from "../middleware/rateLimit.js";
+import { validateInput } from "../../utils/inputValidation/inputValidation.js";
+import { isPasswordValid } from "../../utils/passwordValidation/passwordValidation.js";
+import crypto from "crypto";
+import db from "../../database/database.js";
+
+const router = Router();
 
 router.get("/api/users", authenticateToken, generalRateLimiter, async (req, res) => {
   const user = req.user;
@@ -104,35 +107,34 @@ router.get("/api/users/rooms", authenticateToken, generalRateLimiter, async (req
 
 //Gets all users on instution and their assigned rooms
 router.get("/api/users/:institutionid", authenticateToken, generalRateLimiter, async (req, res) => {
-  const institutionId = req.params.institutionid;
-
   try {
+    const institutionId = req.params.institutionid;
 
     const current_role_name = req.user.role_name
     if (current_role_name != "owner" && current_role_name != "admin"){
       res.status(403).send({message: 'Forbidden'})
     } 
 
-  const query = `
-    SELECT 
-        u.id,
-        u.username,
-        u.institution_id,
-        i.institution_name,
-        GROUP_CONCAT(JSON_OBJECT('id', ro.id, 'name', ro.room_name)) AS rooms
-    FROM 
-        users u
-    LEFT JOIN 
-        users_rooms ur ON u.id = ur.user_id
-    LEFT JOIN 
-        rooms ro ON ur.room_id = ro.id
-    JOIN 
-        institutions i ON u.institution_id = i.id
-    WHERE 
-        u.institution_id = ?
-    GROUP BY 
-        u.id;
-    `;
+    const query = `
+      SELECT 
+          u.id,
+          u.username,
+          u.institution_id,
+          i.institution_name,
+          GROUP_CONCAT(JSON_OBJECT('id', ro.id, 'name', ro.room_name)) AS rooms
+      FROM 
+          users u
+      LEFT JOIN 
+          users_rooms ur ON u.id = ur.user_id
+      LEFT JOIN 
+          rooms ro ON ur.room_id = ro.id
+      JOIN 
+          institutions i ON u.institution_id = i.id
+      WHERE 
+          u.institution_id = ?
+      GROUP BY 
+          u.id;
+      `;
 
     const [results] = await db.connection.query(query, [institutionId]);
 
@@ -151,17 +153,19 @@ router.get("/api/users/:institutionid", authenticateToken, generalRateLimiter, a
   }
 });
 
-
-
 router.post("/api/users/rooms", authenticateToken, postRateLimiter, async (req, res) => {
-
+  try {
   const current_role_name = req.user.role_name
   if (current_role_name != "admin"){
     res.status(403).send({message: 'Forbidden'})
   } 
 
+  const validation = await validateInput(req.body);
+  if (!validation) {
+    return res.status(400).json({ message: "Bad Request" });
+  }
   const usersRooms = req.body.assigned;
-  try {
+  
   if (!usersRooms || usersRooms.length === 0) {
     return res.status(400).send({ message: "Bad Reqeust" });
   }
@@ -183,20 +187,25 @@ router.post("/api/users/rooms", authenticateToken, postRateLimiter, async (req, 
 
 router.post("/api/users", authenticateToken, postRateLimiter, async (req, res) => {
     try {
-
       const current_role_name = req.user.role_name
       if (current_role_name != "owner"){
         res.status(403).send({message: 'Forbidden'})
-      } 
-        const { institutionId, users} = req.body;
+      }
 
-        // Map users into an array of values for insertion
-        const userEntries = users.map(user => {
-            const emailPrefix = user.email.split('@')[0];
-            const randomDigits = Math.floor(1000 + Math.random() * 9000);
-            const username = `${emailPrefix}${randomDigits}`;
-            return [username, institutionId, user.role_id, user.email];
-        });
+      const validation = await validateInput(req.body);
+      if (!validation) {
+        return res.status(400).json({ message: "Bad Request" });
+      }
+
+      const { institutionId, users} = req.body;
+
+      // Map users into an array of values for insertion
+      const userEntries = users.map(user => {
+          const emailPrefix = user.email.split('@')[0];
+          const randomDigits = Math.floor(1000 + Math.random() * 9000);
+          const username = `${emailPrefix}${randomDigits}`;
+          return [username, institutionId, user.role_id, user.email];
+      });
 
         // Insert users in bulk into the database
         const insertUsersQuery = `
@@ -209,7 +218,6 @@ router.post("/api/users", authenticateToken, postRateLimiter, async (req, res) =
         const tokenEntries = insertedUserIds.map(userId => {
             const token = crypto.randomBytes(20).toString("hex"); // Generate unique token
             const  hash  = hashElement(token); // Hash the token securely
-            console.log(hash, "<-- Hashuing")
             const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // Token valid for 24 hours
             const tokenTypeId = 3; // Assuming 3 is the type ID for verification tokens
             return {
@@ -260,40 +268,64 @@ router.post("/api/users", authenticateToken, postRateLimiter, async (req, res) =
 
 
 router.patch('/api/users/:id', postRateLimiter, async (req, res) => {
-  const password = req.body.password;
-  const user_id = req.params.id;    
-
   try {
-      const hash  = hashElement(password);
-      const query = `UPDATE users SET password = ? WHERE id = ?`;
-      const [result] = await db.connection.query(query, [hash, user_id]);
+    const validation = await validateInput(req.body);
+    if (!validation) {
+      return res.status(400).json({ message: "Bad Request" });
+    }
 
-      res.status(200).send({message:`Password updated. Please login`, result});
+    const password = req.body.password;
+    const token = req.body.token;
+    const user_id = req.params.id;
+    const hashToken = hashElement(token);
+    if (!isPasswordValid(password, req.originalUrl)) {
+      return res.status(400).json({ message: "Password must be more than 12 characters" });
+    }
+
+    const tokenQuery = `SELECT token_string FROM tokens WHERE token_string = ?`;
+    const [tokenResult] = await db.connection.query(tokenQuery, [hashToken]);
+
+    if (!tokenResult || tokenResult.length === 0) {
+      return res.status(400).json({ message: "Bad request" });
+    }
+
+    const hash = hashElement(password);
+
+    const updateQuery = `UPDATE users SET password = ? WHERE id = ?`;
+    const [result] = await db.connection.query(updateQuery, [hash, user_id]);
+
+    res.status(200).send({ message: `Password updated. Please login`, result });
   } catch (error) {
-      logErrorToFile(error, req.originalUrl);
-      res.status(500).send({ message: "Something went wrong" });
+    logErrorToFile(error, req.originalUrl);
+    res.status(500).send({ message: "Something went wrong" });
   }
 });
 
-router.delete('/api/users/rooms', authenticateToken, deleteRateLimiter, async (req, res) => {
 
-  const current_role_name = req.user.role_name
-  if (current_role_name != "admin"){
-    res.status(403).send({message: 'Forbidden'})
-  } 
+router.delete('/api/users/rooms', authenticateToken, deleteRateLimiter, async (req, res) => {
+  try {
+    const current_role_name = req.user.role_name
+    if (current_role_name != "admin"){
+      res.status(403).send({message: 'Forbidden'})
+    }
+
+    const validation = await validateInput(req.body);
+    if (!validation) {
+      return res.status(400).json({ message: "Bad Request" });
+    }
+
     const usersRooms = req.body.removed;
     if (!usersRooms || usersRooms.length === 0) {
         return res.status(400).send({ message: "Bad Request" });
     }
 
     const query = `
-        DELETE FROM users_rooms
-        WHERE (user_id, room_id) IN (?)
-    `;
+      DELETE FROM users_rooms
+      WHERE (user_id, room_id) IN (?)
+      `;
 
-  const values = usersRooms.map(({ userId, roomId }) => [userId, roomId]);
+    const values = usersRooms.map(({ userId, roomId }) => [userId, roomId]);
 
-  try {
     await db.connection.query(query, [values]);
     res.send({message: `Successfully removed users from the room`, deleted: usersRooms });
   } catch (error) {
@@ -303,21 +335,25 @@ router.delete('/api/users/rooms', authenticateToken, deleteRateLimiter, async (r
 });
 
 router.delete("/api/users/:id", authenticateToken, async (req, res) => {
+  try {
+    const current_role_name = req.user.role_name
+    if (current_role_name != "owner"){
+      res.status(403).send({message: 'Forbidden'})
+    }
 
-  const current_role_name = req.user.role_name
-  if (current_role_name != "owner"){
-    res.status(403).send({message: 'Forbidden'})
-  } 
+    const validation = await validateInput(req.body);
+    if (!validation) {
+      return res.status(400).json({ message: "Bad Request" });
+    }
+
   const userId = req.params.id;
-  try {  
       const [result] = await db.connection.query(
         // "DELETE FROM tokens WHERE token_type_id = 2 AND id = ?",
           "DELETE FROM users WHERE id = ?",
           [userId]
       );
  
-      res.json({message: `Successfully deleted user`, data: result});
- 
+  res.send({message: `Successfully deleted user`, data: result});
   } catch (error) {
       logErrorToFile(error, req.originalUrl);
       res.status(500).send({ success: false, message: "Something went wrong" });

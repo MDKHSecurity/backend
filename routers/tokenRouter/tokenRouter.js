@@ -1,8 +1,10 @@
 import { Router } from "express";
-import db from "../../database/database.js";
 import { hashElement } from "../../utils/passwords/hashPassword.js"
 import { logErrorToFile } from "../../utils/logErrorToFile/logErrorToFile.js";
 import { deleteRateLimiter, generalRateLimiter } from "../middleware/rateLimit.js";
+import { validateInput } from "../../utils/inputValidation/inputValidation.js";
+import db from "../../database/database.js";
+
 const router = Router();
 
 const jwtSecret = process.env.JWT_SECRET;
@@ -38,6 +40,11 @@ router.get('/api/tokens/:token', generalRateLimiter, async (req, res) => {
 
 router.delete('/api/tokens/:id', deleteRateLimiter, async (req, res) => {
     try {
+        const validation = await validateInput(req.body);
+        if (!validation) {
+        return res.status(400).json({ message: "Bad Request" });
+        }
+
         const tokenId = req.params.id;  // Get the token ID from the URL parameter
         
         // Query to delete the token from the database
