@@ -44,13 +44,12 @@ Create a `.env` file in the root directory of the project and insert the followi
 ```bash
 SQL_CONNECTION_STRING = mysql://Username:Password@127.0.0.1/mdkhsecurity
 SQL_PORT = 3306
-JWT_SECRET = 123
+JWT_SECRET = 944e64693e8d4b712c340aec2ae1d398
 JWT_EXPIRES_IN = 120m
-PBKDF2_ITERATIONS = 100000
+PBKDF2_ITERATIONS = 1000
 PBKDF2_KEYLEN = 64
 PBKDF2_DIGEST = sha512
-PBKDF2_SALT = 123
-SECRET_API_KEY = 123
+PBKDF2_SALT = c986c77be264b99dfadfed761567031d
 ```
 
 This is not the real secrets, but is for the solely purpose of testing.
