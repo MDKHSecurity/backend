@@ -94,29 +94,6 @@ router.post("/api/auth/refresh", async (req, res) => {
   }
 });
 
-
-// ONLY FOR DEVELOPMENT. DELETE FOR PROD
-router.post("/api/auth/register", generalRateLimiter, async (req, res) => {
-  const requestBody = req.body;
-
-  const findUserByUsername = await findUser(requestBody.email);
-  if (findUserByUsername.length === 0) {
-    const { hash } = hashElement(requestBody.password);
-    const insertQuery =
-      "INSERT INTO users (username, password, institution_id, role_id, email) VALUES (?, ?, ?, ?, ?)";
-    const [registeredUser] = await db.connection.query(insertQuery, [
-      requestBody.username,
-      hash,
-      requestBody.institution,
-      requestBody.role_id,
-      requestBody.email,
-    ]);
-    res.status(200).json({ success: true, data: registeredUser });
-  } else {
-    res.status(500).send({ message: "Something went wrong" });
-  }
-});
-
 router.post("/api/auth/login", loginRateLimiter, async (req, res) => {
   const validation = await validateInput(req.body);
   if (!validation) {
@@ -124,8 +101,8 @@ router.post("/api/auth/login", loginRateLimiter, async (req, res) => {
   }
   const requestBody = req.body;
   try {
-  const isPasswordValid = hashElement(requestBody.password);
-  console.log(isPasswordValid)
+    const isPasswordValid = hashElement(requestBody.password);
+  
     const findUserByEmail = await findUser(requestBody.email, isPasswordValid);
     const clientIp = req.socket.remoteAddress;
     const clientPort = req.socket.remotePort;
@@ -137,7 +114,7 @@ router.post("/api/auth/login", loginRateLimiter, async (req, res) => {
     const accessToken = jwt.sign(
       findUserByEmail,
       process.env.JWT_SECRET,
-      { expiresIn: "1m" }
+      { expiresIn: "15m" }
     );
     const refreshToken = jwt.sign(
       findUserByEmail,
